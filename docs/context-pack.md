@@ -58,6 +58,15 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - Inline evidence references (`[E1]`, `[E2]`, ...) are emitted with an evidence index mapped to snippet IDs.
   - `/api/verify` now returns `verifiedAnswer` in `VerificationSession`.
   - `/report` now includes a calm Draft vs Verified compare section.
+  - Implemented export endpoint `POST /api/export` that returns downloadable Markdown (`Content-Disposition: attachment`) from a session payload.
+  - Exported report includes:
+    - metadata (domain, strictness, timestamps)
+    - trust score + breakdown + top risks
+    - claims table
+    - evidence grouped by claim
+    - draft answer
+    - verified answer
+  - Added `Export Report` button on `/report` that calls `/api/export` and downloads the `.md` file.
   - Pipeline module stubs added under `/src/lib/pipeline` with TSDoc + phase-aligned TODOs:
     - `chunkSources.ts`
     - `embedIndex.ts`
@@ -69,9 +78,9 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - `redlineAnswer.ts`
   - Sample files available in `/datasets/demo1` for demo reliability.
 - In progress:
-  - Export phase is not implemented yet.
+  - Phase 4 polish and demo packaging still pending.
 - Next:
-  - Phase 3 Chunk 3: add exportable Trust Report artifact generation (Markdown first).
+  - Phase 4 demo polish/video.
 
 ## Architecture (MVP)
 Sources → chunk/index → draft answer → claim extraction → retrieval → verification → scoring → redline rewrite → report UI → export

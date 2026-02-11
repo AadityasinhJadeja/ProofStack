@@ -36,6 +36,7 @@ function ScoreCard({ session }: { session: VerificationSession }) {
 export default function ReportPage() {
   const [session, setSession] = useState<VerificationSession>(mockVerificationSession);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const [selectedClaimId, setSelectedClaimId] = useState<string>(mockVerificationSession.claims[0]?.id ?? "");
   const [loadStatus, setLoadStatus] = useState<string>("Using fallback mock session.");
 
@@ -115,10 +116,52 @@ export default function ReportPage() {
   const selectedVerdict = selectedClaim ? verdictByClaimId.get(selectedClaim.id) : undefined;
   const selectedEvidence = selectedClaim ? evidenceByClaimId.get(selectedClaim.id) ?? [] : [];
 
+  async function handleExport() {
+    setIsExporting(true);
+
+    try {
+      const response = await fetch("/api/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(session),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const contentDisposition = response.headers.get("Content-Disposition") ?? "";
+      const fileNameMatch = contentDisposition.match(/filename=\"([^\"]+)\"/i);
+      const fileName = fileNameMatch?.[1] ?? `proofstack-trust-report-${session.id}.md`;
+
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      setLoadStatus("Export failed. Please retry.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <section className="stack">
       <h1>Trust Report</h1>
       <p>{isLoading ? "Loading latest session..." : loadStatus}</p>
+      <div>
+        <button type="button" onClick={handleExport} disabled={isExporting}>
+          {isExporting ? "Exporting..." : "Export Report"}
+        </button>
+      </div>
 
       <div className="report-summary-grid">
         <ScoreCard session={session} />
