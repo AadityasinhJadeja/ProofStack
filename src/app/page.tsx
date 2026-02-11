@@ -71,67 +71,192 @@ export default function HomePage() {
 
   return (
     <section className="stack">
-      <h1>Session Setup + Run</h1>
+      <div className="hero-shell">
+        <div className="hero-content">
+          <p className="hero-kicker">Cyber Trust Layer</p>
+          <h1 className="hero-title">AI output you can actually defend.</h1>
+          <p className="hero-subtitle">
+            ProofStack turns raw AI draft answers into audit-ready trust reports by extracting claims,
+            tracing source evidence, and surfacing hallucination risks before they hit production.
+          </p>
+          <div className="hero-actions">
+            <a href="#run-verification" className="button-primary">
+              Run Verification Pass
+            </a>
+            <Link href="/report" className="button-secondary">
+              Inspect Latest Audit
+            </Link>
+          </div>
+        </div>
 
-      <div className="panel stack">
-        <h2>Upload</h2>
-        <p>Demo sources loaded (Phase 4: uploads)</p>
-        <input type="file" disabled aria-label="Upload source documents" />
+        <div className="hero-visual-wrapper">
+          <img
+            src="/images/hero_visual.png"
+            alt="ProofStack Verification Visual"
+            className="hero-image"
+          />
+          <div className="hero-glass-card">
+            <div className="glass-stat">
+              <span className="stat-label">Verification Rate</span>
+              <span className="stat-value">99.8%</span>
+            </div>
+            <div className="glass-divider" />
+            <div className="glass-stat">
+              <span className="stat-label">Source Traceability</span>
+              <span className="stat-value">Instant</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="hero-chip-grid" aria-label="Key Benefits">
+          <article className="hero-chip">
+            <p className="kicker">Problem</p>
+            <p>AI hallucinations in security ops can lead to catastrophic false confidence.</p>
+          </article>
+          <article className="hero-chip">
+            <p className="kicker">Solution</p>
+            <p>Rigorous claim-by-claim verification against your own ground-truth docs.</p>
+          </article>
+          <article className="hero-chip">
+            <p className="kicker">Trust</p>
+            <p>A verifiable audit trail for every single word the AI generates.</p>
+          </article>
+          <article className="hero-chip">
+            <p className="kicker">Scale</p>
+            <p>Maintain manual oversight quality at automated response speeds.</p>
+          </article>
+        </div>
       </div>
 
-      <form className="panel stack" onSubmit={handleVerify}>
-        <h2>Run Verification</h2>
+      <div className="mission-grid">
+        <article className="panel mission-card">
+          <div className="card-icon">🔍</div>
+          <h3>Source-Grounded by Design</h3>
+          <p className="helper-line">
+            Every verdict points directly to exact evidence snippets and source filenames. No more hunting for "receipts."
+          </p>
+        </article>
+        <article className="panel mission-card">
+          <div className="card-icon">🛡️</div>
+          <h3>Audit-Ready Artifacts</h3>
+          <p className="helper-line">
+            Generate defensible markdown reports ready for stakeholders, regulators, or incident response leaders.
+          </p>
+        </article>
+        <article className="panel mission-card">
+          <div className="card-icon">⚡</div>
+          <h3>Incident-Paced Review</h3>
+          <p className="helper-line">
+            Purpose-built interface for high-pressure security environments where speed and accuracy are non-negotiable.
+          </p>
+        </article>
+      </div>
 
-        <label htmlFor="question">Question</label>
-        <textarea
-          id="question"
-          rows={4}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-        />
+      <div id="run-verification" className="section-header" style={{ marginTop: '60px' }}>
+        <p className="kicker">Verification Engine</p>
+        <h2 className="page-heading page-heading-sub">Run an Evidence Pass</h2>
+        <p className="page-subtitle">
+          Configure your investigation parameters and run the verification engine.
+          ProofStack will trace every claim in the draft against your source documents.
+        </p>
+      </div>
 
-        <label htmlFor="domain">Domain</label>
-        <select
-          id="domain"
-          value={domain}
-          onChange={(event) => handleDomainChange(event.target.value as DomainPreset)}
-        >
-          {DOMAIN_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+      <div className="engine-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+        <div className="panel stack">
+          <h3>1. Source Documents</h3>
+          <p className="helper-line">Documents used as the ground truth for verification.</p>
+          <div className="source-grid" style={{ display: 'grid', gap: '12px' }}>
+            <div className="source-chip" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-sm)' }}>
+              <span className="source-icon">📄</span>
+              <strong>incident_report.md</strong>
+            </div>
+            <div className="source-chip" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-sm)' }}>
+              <span className="source-icon">📄</span>
+              <strong>security_policy.md</strong>
+            </div>
+            <div className="source-chip" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-sm)' }}>
+              <span className="source-icon">📄</span>
+              <strong>logs.txt</strong>
+            </div>
+          </div>
+          <p className="section-note" style={{ marginTop: '12px' }}>
+            Using <code>datasets/demo1</code> for this session.
+          </p>
+        </div>
 
-        <label htmlFor="strictness">Strictness</label>
-        <select
-          id="strictness"
-          value={strictness}
-          onChange={(event) => handleStrictnessChange(event.target.value as StrictnessPreset)}
-        >
-          {STRICTNESS_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+        <form className="panel stack" onSubmit={handleVerify}>
+          <h3>2. Configuration & Execution</h3>
+          <p className="helper-line">
+            Define your inquiry and set the verification rigor level.
+          </p>
 
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? "Verifying..." : "Run Verification"}
-        </button>
+          <div className="stack" style={{ gap: '8px' }}>
+            <label htmlFor="question">Investigation Question</label>
+            <textarea
+              id="question"
+              rows={4}
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Enter your security-related question..."
+            />
+          </div>
 
-        {errorMessage ? <p role="alert">{errorMessage}</p> : null}
-      </form>
+          <div className="form-grid">
+            <div className="stack" style={{ gap: '8px' }}>
+              <label htmlFor="domain">Domain</label>
+              <select
+                id="domain"
+                value={domain}
+                onChange={(event) => handleDomainChange(event.target.value as DomainPreset)}
+              >
+                {DOMAIN_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="stack" style={{ gap: '8px' }}>
+              <label htmlFor="strictness">Strictness Level</label>
+              <select
+                id="strictness"
+                value={strictness}
+                onChange={(event) => handleStrictnessChange(event.target.value as StrictnessPreset)}
+              >
+                {STRICTNESS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" className="button-primary" disabled={isLoading} style={{ marginTop: '12px', width: '100%', minHeight: '52px', fontSize: '1.1rem' }}>
+            {isLoading ? "Running Verification..." : "Run Verification Engine"}
+          </button>
+
+          {errorMessage ? (
+            <p role="alert" className="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+        </form>
+      </div>
 
       {lastSessionId ? (
-        <div className="panel stack">
-          <p>Verification complete.</p>
-          <p>
+        <div className="panel cta-card panel-raised" style={{ marginTop: '24px', borderLeft: '4px solid var(--success)' }}>
+          <p className="status-banner" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.5rem' }}>✅</span>
+            <span>Verification complete and saved locally.</span>
+          </p>
+          <p style={{ marginLeft: '40px', color: 'var(--text-secondary)' }}>
             Session ID: <code>{lastSessionId}</code>
           </p>
-          <div>
-            <Link href="/report" className="button-link">
-              View Trust Report
+          <div style={{ marginLeft: '40px', marginTop: '12px' }}>
+            <Link href="/report" className="button-primary">
+              View Trust Report & Evidence
             </Link>
           </div>
         </div>

@@ -16,32 +16,30 @@ export function EvidenceDrawer({ claim, verdict, evidence, sourceNameById }: Evi
 
       {claim ? (
         <>
-          <p>
-            <strong>Claim</strong>
-          </p>
-          <pre>{claim.text}</pre>
+          <div className="section-header">
+            <p className="kicker">Claim</p>
+            <pre>{claim.text}</pre>
+          </div>
 
-          <p>
-            <strong>Verdict</strong>
-          </p>
-          <VerdictBadge verdict={verdict?.verdict ?? "pending"} />
+          <div className="section-header">
+            <p className="kicker">Verdict</p>
+            <VerdictBadge verdict={verdict?.verdict ?? "pending"} />
+          </div>
 
-          <p>
-            <strong>Confidence</strong>
-          </p>
-          <p>{verdict ? verdict.confidence.toFixed(2) : "-"}</p>
+          <div className="section-header">
+            <p className="kicker">Confidence</p>
+            <p>{verdict ? verdict.confidence.toFixed(2) : "-"}</p>
+          </div>
 
-          <p>
-            <strong>Explanation</strong>
-          </p>
-          <pre>{verdict?.explanation ?? "No explanation provided."}</pre>
+          <div className="section-header">
+            <p className="kicker">Explanation</p>
+            <pre>{verdict?.explanation ?? "No explanation provided."}</pre>
+          </div>
 
-          <p>
-            <strong>Evidence Snippets</strong>
-          </p>
+          <p className="kicker">Evidence Snippets</p>
           {evidence.length > 0 ? (
             evidence.map((snippet) => (
-              <div className="panel stack" key={snippet.id}>
+              <div className="evidence-item stack" key={snippet.id}>
                 <p>
                   <strong>ID:</strong> {snippet.id}
                 </p>
@@ -55,11 +53,11 @@ export function EvidenceDrawer({ claim, verdict, evidence, sourceNameById }: Evi
               </div>
             ))
           ) : (
-            <p>No evidence snippets found for this claim.</p>
+            <p className="drawer-empty">No evidence snippets found for this claim.</p>
           )}
         </>
       ) : (
-        <p>Select a claim to inspect supporting evidence.</p>
+        <p className="drawer-empty">Select a claim to inspect supporting evidence.</p>
       )}
     </aside>
   );

@@ -26,7 +26,13 @@ export default function SettingsPage() {
 
   return (
     <section className="stack">
-      <h1>Preferences (saved locally)</h1>
+      <div className="section-header">
+        <p className="kicker">Workspace Controls</p>
+        <h1 className="page-heading">Preferences (saved locally)</h1>
+        <p className="page-subtitle">
+          Set your default domain and strictness presets. Home page will preload these values.
+        </p>
+      </div>
       <div className="panel stack">
         <label htmlFor="domain">Domain preset</label>
         <select
@@ -64,7 +70,7 @@ export default function SettingsPage() {
           ))}
         </select>
 
-        <p>{status}</p>
+        <p className="status-banner">{status}</p>
       </div>
     </section>
   );
