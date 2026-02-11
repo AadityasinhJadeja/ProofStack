@@ -58,6 +58,7 @@ export interface VerificationSession {
   createdAt: string;
   question: string;
   draftAnswer: string;
+  verifiedAnswer: string;
   domain: DomainPreset;
   strictness: StrictnessPreset;
   useDemoDataset: boolean;

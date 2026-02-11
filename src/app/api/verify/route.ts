@@ -4,6 +4,7 @@ import { chunkSources } from "@/lib/pipeline/chunkSources";
 import { draftAnswer } from "@/lib/pipeline/draftAnswer";
 import { extractClaims } from "@/lib/pipeline/extractClaims";
 import { loadDemoDataset } from "@/lib/pipeline/loadDemoDataset";
+import { redlineAnswer } from "@/lib/pipeline/redlineAnswer";
 import { retrieveEvidence } from "@/lib/pipeline/retrieveEvidence";
 import { scoreReport } from "@/lib/pipeline/scoreReport";
 import { verifyClaims } from "@/lib/pipeline/verifyClaims";
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
     evidenceSnippetIds: result.evidenceIds,
   }));
   const trustReport = scoreReport(claims, claimVerdicts);
+  const verified = redlineAnswer(draft.draftText, claims, claimVerdicts, evidenceSnippets);
 
   debugLog("verifyRoute", "verification_complete", {
     claimCount: claims.length,
@@ -90,6 +92,7 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
     question,
     draftAnswer: draft.draftText,
+    verifiedAnswer: verified.verifiedText,
     domain,
     strictness,
     useDemoDataset,

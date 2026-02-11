@@ -51,6 +51,13 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - right-side claim inspector drawer showing claim text, verdict, confidence, explanation, and evidence snippets with source names
   - Added latest-session retrieval API route `GET /api/verify/latest` with file-backed latest-session storage for report rendering.
   - Added fallback mock session for `/report` when no runtime verification session exists yet.
+  - Implemented Phase 3 Chunk 2 Verified Answer generation step:
+    - Added deterministic `redlineAnswer()` pipeline stage that builds a verified answer from draft answer + claim verdicts + evidence snippets.
+    - Unsupported claims are moved to an uncertainty section.
+    - Weak claims are qualified with caveat language.
+    - Inline evidence references (`[E1]`, `[E2]`, ...) are emitted with an evidence index mapped to snippet IDs.
+  - `/api/verify` now returns `verifiedAnswer` in `VerificationSession`.
+  - `/report` now includes a calm Draft vs Verified compare section.
   - Pipeline module stubs added under `/src/lib/pipeline` with TSDoc + phase-aligned TODOs:
     - `chunkSources.ts`
     - `embedIndex.ts`
@@ -62,9 +69,9 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - `redlineAnswer.ts`
   - Sample files available in `/datasets/demo1` for demo reliability.
 - In progress:
-  - Redline/fix-answer and export phases are not implemented yet.
+  - Export phase is not implemented yet.
 - Next:
-  - Phase 3 Chunk 2: implement Verified Answer (redline) generation and diff view.
+  - Phase 3 Chunk 3: add exportable Trust Report artifact generation (Markdown first).
 
 ## Architecture (MVP)
 Sources → chunk/index → draft answer → claim extraction → retrieval → verification → scoring → redline rewrite → report UI → export

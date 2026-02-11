@@ -9,6 +9,8 @@ export const mockVerificationSession: VerificationSession = {
   question: "Analyze this incident and recommend remediation steps.",
   draftAnswer:
     "The incident appears consistent with credential stuffing against authentication endpoints. Containment controls reduced immediate abuse, but evidence confidence differs by claim.",
+  verifiedAnswer:
+    "Verified Answer\n\nEvidence-supported points:\n- The incident aligns with credential stuffing behavior. [E1]\n\nQualified points (weak evidence):\n- Likely: Rate limiting and step-up MFA reduced abusive login attempts. (insufficient evidence for full confidence). [E2]\n\nUncertain or unsupported points:\n- Uncertain: No confirmed data exfiltration exists in the reviewed timeline. (not supported by available evidence). [E3]\n\nEvidence index:\n[E1] = claim-1-evidence-1\n[E2] = claim-2-evidence-1\n[E3] = claim-3-evidence-1",
   domain: "Cyber/Security",
   strictness: "Balanced",
   useDemoDataset: true,

@@ -20,7 +20,24 @@ export async function setLatestSession(session: VerificationSession): Promise<vo
 export async function getLatestSession(): Promise<VerificationSession | null> {
   try {
     const content = await readFile(SESSION_FILE, "utf8");
-    return JSON.parse(content) as VerificationSession;
+    const parsed = JSON.parse(content) as Partial<VerificationSession>;
+
+    if (
+      typeof parsed.id !== "string" ||
+      typeof parsed.createdAt !== "string" ||
+      typeof parsed.question !== "string" ||
+      typeof parsed.draftAnswer !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      ...(parsed as VerificationSession),
+      verifiedAnswer:
+        typeof parsed.verifiedAnswer === "string" && parsed.verifiedAnswer.trim().length > 0
+          ? parsed.verifiedAnswer
+          : parsed.draftAnswer,
+    };
   } catch {
     return null;
   }

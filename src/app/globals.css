@@ -121,12 +121,29 @@ td {
   margin: 0;
 }
 
+.compare-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.compare-block {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fafbfc;
+}
+
 @media (max-width: 900px) {
   .results-layout {
     grid-template-columns: 1fr;
   }
 
   .report-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-grid {
     grid-template-columns: 1fr;
   }
 }

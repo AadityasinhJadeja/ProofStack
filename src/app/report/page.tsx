@@ -137,6 +137,20 @@ export default function ReportPage() {
         </div>
       </div>
 
+      <div className="panel stack">
+        <h2>Draft vs Verified</h2>
+        <div className="compare-grid">
+          <div className="compare-block">
+            <h3>Draft Answer</h3>
+            <pre>{session.draftAnswer}</pre>
+          </div>
+          <div className="compare-block">
+            <h3>Verified Answer</h3>
+            <pre>{session.verifiedAnswer}</pre>
+          </div>
+        </div>
+      </div>
+
       <div className="results-layout">
         <div className="panel stack">
           <h2>Claims</h2>
