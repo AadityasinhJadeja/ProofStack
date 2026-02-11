@@ -1042,3 +1042,76 @@ code {
     grid-template-columns: 1fr;
   }
 }
+
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--surface-soft);
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-zone:hover {
+  border-color: var(--accent);
+  background: var(--surface-muted);
+  transform: translateY(-2px);
+}
+
+.upload-icon {
+  font-size: 2.5rem;
+  margin-bottom: 4px;
+}
+
+.source-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.source-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  position: relative;
+  transition: all var(--transition);
+}
+
+.source-chip:hover {
+  border-color: var(--accent-light);
+  background: var(--surface-soft);
+}
+
+.source-chip strong {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.remove-source-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all var(--transition);
+}
+
+.remove-source-btn:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
