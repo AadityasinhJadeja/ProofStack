@@ -161,8 +161,8 @@ export default function ReportPage() {
   if (isLoading) {
     return (
       <section className="stack">
-        <h1>Trust Report</h1>
-        <p>Loading latest session...</p>
+        <h1 className="page-heading">Trust Report</h1>
+        <p className="helper-line">Loading latest session...</p>
       </section>
     );
   }
@@ -170,9 +170,10 @@ export default function ReportPage() {
   if (!session) {
     return (
       <section className="stack">
-        <h1>Trust Report</h1>
-        <div className="panel stack">
+        <h1 className="page-heading">Trust Report</h1>
+        <div className="panel stack empty-state">
           <p>No verification session found.</p>
+          <p className="helper-line">Run verification on Home first, then return here to inspect the report.</p>
           <div>
             <Link href="/" className="button-link">
               Go to Home to run verification
@@ -185,20 +186,40 @@ export default function ReportPage() {
 
   return (
     <section className="stack">
-      <h1>Trust Report</h1>
-
-      <div>
-        <button type="button" onClick={handleExport} disabled={isExporting}>
-          {isExporting ? "Exporting..." : "Export Report"}
-        </button>
+      <div className="report-topbar">
+        <div className="section-header">
+          <p className="kicker">Report Artifact</p>
+          <h1 className="page-heading">Trust Report</h1>
+          <p className="page-subtitle">
+            Review score, claim-level verdicts, and source evidence before sharing conclusions.
+          </p>
+        </div>
+        <div>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? "Exporting..." : "Export Report"}
+          </button>
+        </div>
       </div>
-      {errorMessage ? <p role="alert">{errorMessage}</p> : null}
+
+      {errorMessage ? (
+        <p role="alert" className="alert">
+          {errorMessage}
+        </p>
+      ) : null}
 
       <div className="report-summary-grid">
         <ScoreCard session={session} />
 
         <div className="panel stack">
           <h2>Top Risks</h2>
+          <p className="helper-line">
+            Focus on weak and unsupported claims first. These are the likely failure points for downstream decisions.
+          </p>
           <p>
             Weak claims: <strong>{weakCount}</strong>
           </p>
@@ -208,7 +229,7 @@ export default function ReportPage() {
           <p>
             Highest-risk claim: <strong>{riskClaim ? riskClaim.text : "None"}</strong>
           </p>
-          <p>
+          <p className="section-note">
             Risk note: Claims with weak or unsupported verdicts require manual analyst review before action.
           </p>
           {session.trustReport.topRisks.length > 0 ? (
@@ -221,16 +242,26 @@ export default function ReportPage() {
         </div>
       </div>
 
-      <div className="panel stack">
-        <h2>Draft vs Verified</h2>
-        <div className="compare-grid">
-          <div className="compare-block">
-            <h3>Draft Answer</h3>
-            <pre>{session.draftAnswer}</pre>
+      <div className="panel stack panel-raised">
+        <div style={{ borderLeft: '4px solid var(--accent)', paddingLeft: '16px' }}>
+          <h2>Audit Outcome: Draft vs Verified</h2>
+          <p className="helper-line">
+            See how the verification engine qualified the initial AI response based on ground-truth evidence.
+          </p>
+        </div>
+        <div className="compare-grid" style={{ marginTop: '12px' }}>
+          <div className="compare-block" style={{ background: 'var(--surface-muted)', border: '1px solid var(--border)' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+              <span>📝</span> Draft Answer (Unverified)
+            </h3>
+            <pre style={{ marginTop: '12px', fontSize: '1rem', color: 'var(--text-secondary)', opacity: 0.8 }}>{session.draftAnswer}</pre>
           </div>
-          <div className="compare-block">
-            <h3>Verified Answer</h3>
-            <pre>{session.verifiedAnswer}</pre>
+          <div className="compare-block" style={{ background: 'var(--success-soft)', border: '1px solid var(--success)', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--success)', color: 'white', fontSize: '0.7rem', fontWeight: 800, padding: '4px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>Verified</div>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)' }}>
+              <span>🛡️</span> Verified Answer
+            </h3>
+            <pre style={{ marginTop: '12px', fontSize: '1rem', fontWeight: 500 }}>{session.verifiedAnswer}</pre>
           </div>
         </div>
       </div>
@@ -238,6 +269,7 @@ export default function ReportPage() {
       <div className="results-layout">
         <div className="panel stack">
           <h2>Claims</h2>
+          <p className="helper-line">Select a claim to inspect the exact evidence snippets used for verification.</p>
           <ClaimTable
             claims={session.claims}
             verdictByClaimId={verdictByClaimId}
@@ -256,26 +288,29 @@ export default function ReportPage() {
 
       <details className="panel">
         <summary>Show debug details</summary>
-        <div className="stack" style={{ marginTop: "12px" }}>
+        <div className="stack debug-block">
           <p>
-            Sources loaded: <strong>{session.sources.length}</strong> | Total chunks: <strong>{session.chunks.length}</strong>
+            Sources loaded: <strong>{session.sources.length}</strong> | Total chunks:{" "}
+            <strong>{session.chunks.length}</strong>
           </p>
-          <table>
-            <thead>
-              <tr>
-                <th align="left">Source</th>
-                <th align="left">Chunks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {session.sources.map((source) => (
-                <tr key={source.id}>
-                  <td>{source.fileName}</td>
-                  <td>{chunkCountBySourceId.get(source.id) ?? 0}</td>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Chunks</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {session.sources.map((source) => (
+                  <tr key={source.id}>
+                    <td>{source.fileName}</td>
+                    <td>{chunkCountBySourceId.get(source.id) ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </details>
     </section>

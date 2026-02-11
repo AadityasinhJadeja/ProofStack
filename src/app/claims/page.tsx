@@ -86,8 +86,8 @@ export default function ClaimsPage() {
   if (isLoading) {
     return (
       <section className="stack">
-        <h1>Claims</h1>
-        <p>Loading latest session...</p>
+        <h1 className="page-heading">Claims</h1>
+        <p className="helper-line">Loading latest session...</p>
       </section>
     );
   }
@@ -95,9 +95,10 @@ export default function ClaimsPage() {
   if (!session) {
     return (
       <section className="stack">
-        <h1>Claims</h1>
-        <div className="panel stack">
+        <h1 className="page-heading">Claims</h1>
+        <div className="panel stack empty-state">
           <p>No verification session found.</p>
+          <p className="helper-line">Run verification on Home first, then return here to review claim evidence.</p>
           <div>
             <Link href="/" className="button-link">
               Go to Home to run verification
@@ -110,7 +111,13 @@ export default function ClaimsPage() {
 
   return (
     <section className="stack">
-      <h1>Claims</h1>
+      <div className="section-header">
+        <p className="kicker">Claim Audit</p>
+        <h1 className="page-heading">Claims</h1>
+        <p className="page-subtitle">
+          Filter and inspect claim verdicts. Click any row to open supporting evidence in the drawer.
+        </p>
+      </div>
 
       <div className="panel stack">
         <h2>Filter</h2>
@@ -131,6 +138,7 @@ export default function ClaimsPage() {
       <div className="results-layout">
         <div className="panel stack">
           <h2>Claims Table</h2>
+          <p className="helper-line">Showing {filteredClaims.length} claim(s) for the selected filter.</p>
           <ClaimTable
             claims={filteredClaims}
             verdictByClaimId={verdictByClaimId}

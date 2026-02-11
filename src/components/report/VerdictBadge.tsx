@@ -12,7 +12,12 @@ export function VerdictBadge({ verdict }: VerdictBadgeProps) {
         ? "badge badge-weak"
         : verdict === "unsupported"
           ? "badge badge-unsupported"
-          : "badge";
+          : "badge badge-pending";
 
-  return <span className={className}>{verdict}</span>;
+  return (
+    <span className={className}>
+      <span className="badge-dot" aria-hidden="true" />
+      {verdict}
+    </span>
+  );
 }
