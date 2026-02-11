@@ -29,7 +29,7 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - `domain`
     - `strictness`
     and returns a complete `VerificationSession`.
-  - Home now renders verification output with trust score + claims table.
+  - Home now runs verification and stores the latest session for downstream pages.
   - Implemented deterministic demo ingestion via `loadDemoDataset()` for:
     - `/datasets/demo1/incident_report.md`
     - `/datasets/demo1/security_policy.md`
@@ -41,7 +41,7 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
   - Implemented `verifyClaims()` with per-claim LLM validation using only retrieved evidence snippets.
   - Implemented deterministic `scoreReport()` (0-100) with risk extraction.
   - `/api/verify` now runs end-to-end: draft answer -> claim extraction -> top-3 retrieval -> claim verification -> trust scoring.
-  - Home now displays draft answer, trust score, verdict badges, and an evidence drawer.
+  - Home has been simplified into Session Setup + Run flow with a post-run CTA to Trust Report.
   - Added minimal debug logging behind `DEBUG` flag.
   - Implemented Phase 3 Chunk 1 Trust Report UI on `/report`:
     - Trust Score card
@@ -49,8 +49,7 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - Top Risks section
     - Claims table with verdict badges and confidence
     - right-side claim inspector drawer showing claim text, verdict, confidence, explanation, and evidence snippets with source names
-  - Added latest-session retrieval API route `GET /api/verify/latest` with file-backed latest-session storage for report rendering.
-  - Added fallback mock session for `/report` when no runtime verification session exists yet.
+  - Added latest-session retrieval API route `GET /api/verify/latest` with file-backed latest-session storage.
   - Implemented Phase 3 Chunk 2 Verified Answer generation step:
     - Added deterministic `redlineAnswer()` pipeline stage that builds a verified answer from draft answer + claim verdicts + evidence snippets.
     - Unsupported claims are moved to an uncertainty section.
@@ -67,6 +66,14 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - draft answer
     - verified answer
   - Added `Export Report` button on `/report` that calls `/api/export` and downloads the `.md` file.
+  - Implemented Phase 3.5 controlled productization for judge-ready cohesion:
+    - Home is now Session Setup + Run only (question/domain/strictness/verify + single CTA to Trust Report after completion).
+    - Report is the primary artifact page with trust summary, top risks, claims table, evidence drawer, and draft-vs-verified compare.
+    - Claims page is now live and session-backed with filters (All/Supported/Weak/Unsupported) plus evidence inspection.
+    - Settings is now “Preferences (saved locally)” with localStorage persistence for domain + strictness.
+    - Latest session is persisted in localStorage after verify and loaded consistently on Report/Claims pages.
+    - Added collapsed debug disclosure (“Show debug details”) on Report for source/chunk diagnostics.
+    - Added reusable UI composition components under `/src/components/report`.
   - Pipeline module stubs added under `/src/lib/pipeline` with TSDoc + phase-aligned TODOs:
     - `chunkSources.ts`
     - `embedIndex.ts`
@@ -81,6 +88,12 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
   - Phase 4 polish and demo packaging still pending.
 - Next:
   - Phase 4 demo polish/video.
+
+## Current UX flow
+Home (/): Session setup + run verification against demo dataset.
+Report (/report): Main trust artifact with score, risks, claims, evidence inspection, draft-vs-verified, and export.
+Claims (/claims): Filtered claims workspace with evidence drilldown.
+Settings (/settings): Locally persisted preferences (domain/strictness) that hydrate Home defaults.
 
 ## Architecture (MVP)
 Sources → chunk/index → draft answer → claim extraction → retrieval → verification → scoring → redline rewrite → report UI → export

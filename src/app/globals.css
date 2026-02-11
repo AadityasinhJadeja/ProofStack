@@ -60,6 +60,14 @@ pre {
   white-space: pre-wrap;
 }
 
+.button-link {
+  display: inline-block;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px 12px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -70,6 +78,10 @@ td {
   border-bottom: 1px solid #e5e7eb;
   padding: 8px;
   vertical-align: top;
+}
+
+.row-selected {
+  background: #f8fafc;
 }
 
 .badge {
@@ -132,6 +144,28 @@ td {
   border-radius: 8px;
   padding: 12px;
   background: #fafbfc;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 6px 10px;
+}
+
+.filter-button-active {
+  border-color: #9ca3af;
+  background: #f3f4f6;
+}
+
+summary {
+  cursor: pointer;
 }
 
 @media (max-width: 900px) {
