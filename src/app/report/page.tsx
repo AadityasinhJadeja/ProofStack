@@ -187,6 +187,9 @@ export default function ReportPage() {
   return (
     <section className="stack">
       <div className="report-topbar">
+        {/* Left Spacer for centering */}
+        <div className="report-topbar-spacer" />
+
         <div className="section-header">
           <p className="kicker">Report Artifact</p>
           <h1 className="page-heading">Trust Report</h1>
@@ -194,7 +197,8 @@ export default function ReportPage() {
             Review score, claim-level verdicts, and source evidence before sharing conclusions.
           </p>
         </div>
-        <div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
             className="button-secondary"
@@ -205,6 +209,7 @@ export default function ReportPage() {
           </button>
         </div>
       </div>
+
 
       {errorMessage ? (
         <p role="alert" className="alert">

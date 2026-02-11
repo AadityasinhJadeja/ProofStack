@@ -38,29 +38,32 @@ export function ScoreCard({ session }: ScoreCardProps) {
         : "score-chip score-chip-low";
 
   return (
-    <div className="panel stack panel-raised">
-      <h3 className="kicker" style={{ color: 'var(--text-muted)' }}>Security Trust Score</h3>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-        <p className="score-value">{session.trustReport.trustScore}</p>
-        <p className={scoreClass} style={{ marginBottom: '12px' }}>
-          <span className="badge-dot" aria-hidden="true" />
-          {label} Trust Level
-        </p>
-      </div>
-      <p className="score-microcopy" style={{ fontSize: '1.1rem', lineHeight: '1.4' }}>{microcopy(label)}</p>
+    <div className="panel stack" style={{ border: 'none', boxShadow: 'var(--shadow-md)', background: 'var(--app-surface)' }}>
+      <p style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Security Trust Score</p>
 
-      <div className="metric-row" style={{ marginTop: '12px', display: 'flex', gap: '16px' }}>
-        <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-sm)', background: 'var(--success-soft)', border: '1px solid var(--success)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--success)' }}>Supported</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>{session.trustReport.supportedCount}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <p className="score-value" style={{ fontSize: '4rem', fontWeight: 800, color: 'var(--text-primary)' }}>{session.trustReport.trustScore}</p>
+        <div>
+          <p className={scoreClass} style={{ marginBottom: '4px', borderRadius: '12px' }}>
+            <span className="badge-dot" aria-hidden="true" />
+            {label} Trust Level
+          </p>
+          <p className="score-microcopy" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', maxWidth: '280px' }}>{microcopy(label)}</p>
         </div>
-        <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-sm)', background: 'var(--warning-soft)', border: '1px solid var(--warning)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--warning)' }}>Weak</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>{session.trustReport.weakCount}</span>
+      </div>
+
+      <div className="metric-row" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
+        <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-sm)', background: 'var(--canvas)', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Supported</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--success)' }}>{session.trustReport.supportedCount}</span>
         </div>
-        <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-sm)', background: 'var(--danger-soft)', border: '1px solid var(--danger)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--danger)' }}>Unsupported</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>{session.trustReport.unsupportedCount}</span>
+        <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-sm)', background: 'var(--canvas)', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Weak</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--warning)' }}>{session.trustReport.weakCount}</span>
+        </div>
+        <div style={{ flex: 1, padding: '16px', borderRadius: 'var(--radius-sm)', background: 'var(--canvas)', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Unsupported</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--danger)' }}>{session.trustReport.unsupportedCount}</span>
         </div>
       </div>
 

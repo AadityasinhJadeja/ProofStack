@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { AppNav } from "@/components/navigation/AppNav";
+import { TopBarActions } from "@/components/navigation/TopBarActions";
+
 
 export const metadata: Metadata = {
   title: "ProofStack",
@@ -24,21 +26,27 @@ export default function RootLayout({
         <main className="page-shell">
           <header className="app-header">
             <div className="app-topbar">
-              <Link href="/" className="brand-link" aria-label="ProofStack Home">
-                <span className="brand-icon" aria-hidden="true">
-                  <span className="brand-dot brand-dot-active" />
-                  <span className="brand-dot" />
-                  <span className="brand-dot" />
-                  <span className="brand-dot" />
-                </span>
-                <span className="brand-name">ProofStack</span>
-              </Link>
+              <div className="topbar-left">
+                <Link href="/" className="brand-link" aria-label="ProofStack Home">
+                  <span className="brand-icon" aria-hidden="true">
+                    <span className="brand-dot" />
+                    <span className="brand-dot" />
+                    <span className="brand-dot" />
+                    <span className="brand-dot" />
+                  </span>
+                  <span className="brand-name">ProofStack</span>
+                </Link>
+              </div>
+
               <AppNav />
-              <Link href="/" className="button-secondary topbar-cta">
-                Run Demo
-              </Link>
+
+              <div className="topbar-right" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <TopBarActions />
+              </div>
             </div>
-            <p className="brand-subtitle">Evidence-backed AI verification for security decisions</p>
+
+
+
           </header>
           {children}
         </main>
