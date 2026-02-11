@@ -22,3 +22,7 @@ pnpm-debug.log*
 # editor
 .vscode
 .idea
+
+# ProofStack local runtime artifacts
+.proofstack/
+**/tsconfig.tsbuildinfo
