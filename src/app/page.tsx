@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useRef } from "react";
 
 import { getPrefs, setLastSession, setPrefs } from "@/lib/sessionStore";
 import type { DomainPreset, StrictnessPreset, VerificationSession } from "@/lib/types/proofstack";
@@ -17,6 +17,8 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const prefs = getPrefs();
@@ -24,23 +26,44 @@ export default function HomePage() {
     setStrictness(prefs.strictness);
   }, []);
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      setUploadedFiles(prev => [...prev, ...Array.from(files)]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
 
     try {
+      const formData = new FormData();
+      formData.append("question", question);
+      formData.append("domain", domain);
+      formData.append("strictness", strictness);
+
+      if (uploadedFiles.length > 0) {
+        uploadedFiles.forEach(file => {
+          formData.append("files", file);
+        });
+        formData.append("useDemoDataset", "false");
+      } else {
+        formData.append("useDemoDataset", "true");
+      }
+
       const response = await fetch("/api/verify", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          question,
-          useDemoDataset: true,
-          domain,
-          strictness,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -164,24 +187,47 @@ export default function HomePage() {
       <div className="engine-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
         <div className="panel stack">
           <h3>1. Source Documents</h3>
-          <p className="helper-line">Documents used as the ground truth for verification.</p>
-          <div className="source-grid" style={{ display: 'grid', gap: '12px' }}>
-            <div className="source-chip" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-sm)' }}>
-              <span className="source-icon">📄</span>
-              <strong>incident_report.md</strong>
-            </div>
-            <div className="source-chip" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-sm)' }}>
-              <span className="source-icon">📄</span>
-              <strong>security_policy.md</strong>
-            </div>
-            <div className="source-chip" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--surface-muted)', borderRadius: 'var(--radius-sm)' }}>
-              <span className="source-icon">📄</span>
-              <strong>logs.txt</strong>
-            </div>
+          <p className="helper-line">Upload security documents such as Incident Reports, Security Policies, System Logs, or Threat Intel feeds for evidence-backed verification.</p>
+
+          <div
+            className="upload-zone"
+            onClick={triggerFileUpload}
+          >
+            <span className="upload-icon">📁</span>
+            <p style={{ fontWeight: 600 }}>Click to upload files</p>
+            <p className="helper-line">Supports PDF, TXT, MD</p>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              multiple
+              accept=".pdf,.txt,.md"
+              style={{ display: 'none' }}
+            />
           </div>
-          <p className="section-note" style={{ marginTop: '12px' }}>
-            Using <code>datasets/demo1</code> for this session.
-          </p>
+
+          <div className="source-grid" style={{ marginTop: '16px' }}>
+            {uploadedFiles.length > 0 ? (
+              uploadedFiles.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="source-chip">
+                  <span className="source-icon">📄</span>
+                  <strong>{file.name}</strong>
+                  <button
+                    type="button"
+                    className="remove-source-btn"
+                    onClick={(e) => { e.stopPropagation(); removeFile(index); }}
+                    title="Remove file"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p className="section-note" style={{ textAlign: 'center', opacity: 0.6 }}>
+                No files uploaded. Will use <code>datasets/demo1</code> if empty.
+              </p>
+            )}
+          </div>
         </div>
 
         <form className="panel stack" onSubmit={handleVerify}>

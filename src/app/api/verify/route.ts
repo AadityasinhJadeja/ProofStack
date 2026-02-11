@@ -15,15 +15,9 @@ import type {
   EvidenceSnippet,
   StrictnessPreset,
   VerificationSession,
+  SourceDoc,
 } from "@/lib/types/proofstack";
 import { debugLog } from "@/lib/utils/debug";
-
-interface VerifyRequestBody {
-  question?: string;
-  useDemoDataset?: boolean;
-  domain?: DomainPreset;
-  strictness?: StrictnessPreset;
-}
 
 const DOMAIN_PRESETS: DomainPreset[] = ["Cyber/Security"];
 const STRICTNESS_PRESETS: StrictnessPreset[] = ["Fast", "Balanced", "Strict"];
@@ -39,17 +33,53 @@ function isStrictnessPreset(value: unknown): value is StrictnessPreset {
 }
 
 export async function POST(request: Request) {
-  const rawBody = (await request.json().catch(() => ({}))) as VerifyRequestBody;
+  const contentType = request.headers.get("content-type") || "";
 
-  const question =
-    typeof rawBody.question === "string" && rawBody.question.trim().length > 0
-      ? rawBody.question.trim()
-      : "Analyze this incident and recommend remediation steps.";
-  const useDemoDataset = rawBody.useDemoDataset === true;
-  const domain = isDomainPreset(rawBody.domain) ? rawBody.domain : "Cyber/Security";
-  const strictness = isStrictnessPreset(rawBody.strictness) ? rawBody.strictness : "Balanced";
+  let question = "";
+  let useDemoDataset = false;
+  let domain: DomainPreset = "Cyber/Security";
+  let strictness: StrictnessPreset = "Balanced";
+  let sources: SourceDoc[] = [];
 
-  const sources = useDemoDataset ? await loadDemoDataset() : [];
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await request.formData();
+    question = formData.get("question")?.toString() || "Analyze this incident and recommend remediation steps.";
+    useDemoDataset = formData.get("useDemoDataset") === "true";
+
+    const d = formData.get("domain");
+    if (isDomainPreset(d)) domain = d;
+
+    const s = formData.get("strictness");
+    if (isStrictnessPreset(s)) strictness = s;
+
+    const files = formData.getAll("files") as File[];
+    if (files.length > 0) {
+      sources = await Promise.all(
+        files.map(async (file, index) => ({
+          id: `source-upload-${Date.now()}-${index}`,
+          fileName: file.name,
+          content: await file.text(),
+          isDemo: false,
+        }))
+      );
+    }
+  } else {
+    const rawBody = (await request.json().catch(() => ({})));
+    question = rawBody.question || "Analyze this incident and recommend remediation steps.";
+    useDemoDataset = rawBody.useDemoDataset === true;
+    domain = isDomainPreset(rawBody.domain) ? rawBody.domain : "Cyber/Security";
+    strictness = isStrictnessPreset(rawBody.strictness) ? rawBody.strictness : "Balanced";
+  }
+
+  if (sources.length === 0 && useDemoDataset) {
+    sources = await loadDemoDataset();
+  } else if (sources.length === 0 && !useDemoDataset) {
+    // Fallback to demo if no files uploaded but demo not explicitly requested? 
+    // Or just return error? For the hackathon, let's fallback to demo if empty.
+    sources = await loadDemoDataset();
+    useDemoDataset = true;
+  }
+
   const chunks = chunkSources(sources);
 
   debugLog("verifyRoute", "ingestion_complete", {
