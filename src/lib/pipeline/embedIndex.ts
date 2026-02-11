@@ -1,4 +1,4 @@
-import type { TextChunk } from "./chunkSources";
+import type { Chunk } from "@/lib/types/proofstack";
 
 export interface IndexedChunk {
   chunkId: string;
@@ -9,7 +9,7 @@ export interface IndexedChunk {
 /**
  * Embeds chunks and stores them in a searchable index.
  */
-export async function embedIndex(chunks: TextChunk[]): Promise<IndexedChunk[]> {
+export async function embedIndex(chunks: Chunk[]): Promise<IndexedChunk[]> {
   // TODO(Phase 1): generate embeddings for each chunk.
   // TODO(Phase 1): store vectors in local FAISS/Chroma index for deterministic demo behavior.
   void chunks;

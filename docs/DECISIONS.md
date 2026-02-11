@@ -34,5 +34,5 @@
 - 2026-02-11: WCAG AA contrast target; status never color-only; keyboard focus visible. Reason: professionalism + trust.
 
 ## Demo invariants
-- 2026-02-11: Always ship with /datasets and a “Load sample dataset” button. Reason: demo reliability.
+- 2026-02-11: Always ship with /datasets/demo1 and a “Load sample dataset” button. Reason: demo reliability.
 - 2026-02-11: Demo must show at least 1 Supported, 1 Weak, 1 Unsupported claim. Reason: contrast sells the product.

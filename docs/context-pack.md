@@ -13,8 +13,36 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
 - Done:
   - Next.js (App Router) + TypeScript project scaffold created.
   - Core pages scaffolded: Home, Report, Claims, Settings.
-  - Home includes Upload + Ask placeholders and a "Load sample dataset" button that reads `/datasets` and lists file names.
+  - Home includes Upload + Ask placeholders and a wired "Load sample dataset" button that calls `/api/verify`.
   - API health endpoint added at `/api/health` returning `{ "status": "ok" }`.
+  - Added shared ProofStack session model types in `/src/lib/types/proofstack.ts`:
+    - `SourceDoc`
+    - `Chunk`
+    - `Claim`
+    - `EvidenceSnippet`
+    - `ClaimVerdict`
+    - `TrustReport`
+    - `VerificationSession`
+  - Added `/api/verify` endpoint that accepts:
+    - `question`
+    - `useDemoDataset`
+    - `domain`
+    - `strictness`
+    and returns a complete `VerificationSession`.
+  - Home now renders verification output with trust score + claims table.
+  - Implemented deterministic demo ingestion via `loadDemoDataset()` for:
+    - `/datasets/demo1/incident_report.md`
+    - `/datasets/demo1/security_policy.md`
+    - `/datasets/demo1/logs.txt`
+  - Implemented deterministic chunking via `chunkSources()` with stable chunk IDs.
+  - Implemented simple keyword-overlap evidence retrieval via `retrieveEvidence()` with top-3 chunks per claim.
+  - Implemented `draftAnswer()` with LLM call (cyber-analyst prompt, low temperature) plus fallback.
+  - Implemented `extractClaims()` with JSON guardrails, parse validation, one retry, and fallback (max 12 claims).
+  - Implemented `verifyClaims()` with per-claim LLM validation using only retrieved evidence snippets.
+  - Implemented deterministic `scoreReport()` (0-100) with risk extraction.
+  - `/api/verify` now runs end-to-end: draft answer -> claim extraction -> top-3 retrieval -> claim verification -> trust scoring.
+  - Home now displays draft answer, trust score, verdict badges, and an evidence drawer.
+  - Added minimal debug logging behind `DEBUG` flag.
   - Pipeline module stubs added under `/src/lib/pipeline` with TSDoc + phase-aligned TODOs:
     - `chunkSources.ts`
     - `embedIndex.ts`
@@ -24,12 +52,11 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
     - `verifyClaims.ts`
     - `scoreReport.ts`
     - `redlineAnswer.ts`
-  - Sample files available in `/datasets` for demo reliability.
+  - Sample files available in `/datasets/demo1` for demo reliability.
 - In progress:
-  - No runtime pipeline behavior yet (scaffold-only by design for Phase 1 engineering pass).
+  - Redline/fix-answer and export phases are not implemented yet.
 - Next:
-  - Implement source ingestion and indexing internals (Phase 1 pipeline behavior).
-  - Connect UI actions to pipeline orchestration for draft-answer and verification flow.
+  - Phase 3.
 
 ## Architecture (MVP)
 Sources → chunk/index → draft answer → claim extraction → retrieval → verification → scoring → redline rewrite → report UI → export
