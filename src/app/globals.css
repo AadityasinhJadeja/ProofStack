@@ -108,8 +108,25 @@ td {
   overflow-y: auto;
 }
 
+.report-summary-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.score-value {
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: 600;
+  margin: 0;
+}
+
 @media (max-width: 900px) {
   .results-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .report-summary-grid {
     grid-template-columns: 1fr;
   }
 }

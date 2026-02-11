@@ -43,6 +43,14 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
   - `/api/verify` now runs end-to-end: draft answer -> claim extraction -> top-3 retrieval -> claim verification -> trust scoring.
   - Home now displays draft answer, trust score, verdict badges, and an evidence drawer.
   - Added minimal debug logging behind `DEBUG` flag.
+  - Implemented Phase 3 Chunk 1 Trust Report UI on `/report`:
+    - Trust Score card
+    - verdict breakdown counts
+    - Top Risks section
+    - Claims table with verdict badges and confidence
+    - right-side claim inspector drawer showing claim text, verdict, confidence, explanation, and evidence snippets with source names
+  - Added latest-session retrieval API route `GET /api/verify/latest` with file-backed latest-session storage for report rendering.
+  - Added fallback mock session for `/report` when no runtime verification session exists yet.
   - Pipeline module stubs added under `/src/lib/pipeline` with TSDoc + phase-aligned TODOs:
     - `chunkSources.ts`
     - `embedIndex.ts`
@@ -56,7 +64,7 @@ Show Draft Answer with 1–2 wrong claims → ProofStack flags unsupported claim
 - In progress:
   - Redline/fix-answer and export phases are not implemented yet.
 - Next:
-  - Phase 3.
+  - Phase 3 Chunk 2: implement Verified Answer (redline) generation and diff view.
 
 ## Architecture (MVP)
 Sources → chunk/index → draft answer → claim extraction → retrieval → verification → scoring → redline rewrite → report UI → export

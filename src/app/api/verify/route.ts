@@ -7,6 +7,7 @@ import { loadDemoDataset } from "@/lib/pipeline/loadDemoDataset";
 import { retrieveEvidence } from "@/lib/pipeline/retrieveEvidence";
 import { scoreReport } from "@/lib/pipeline/scoreReport";
 import { verifyClaims } from "@/lib/pipeline/verifyClaims";
+import { setLatestSession } from "@/lib/session/latestSession";
 import type {
   ClaimVerdict,
   DomainPreset,
@@ -99,6 +100,8 @@ export async function POST(request: Request) {
     claimVerdicts,
     trustReport,
   };
+
+  await setLatestSession(session);
 
   return NextResponse.json(session);
 }
