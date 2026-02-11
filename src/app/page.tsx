@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState, useRef } from "react";
 
 import { getPrefs, setLastSession, setPrefs } from "@/lib/sessionStore";
@@ -10,11 +11,21 @@ const DOMAIN_OPTIONS: DomainPreset[] = ["Cyber/Security"];
 const STRICTNESS_OPTIONS: StrictnessPreset[] = ["Fast", "Balanced", "Strict"];
 const DEFAULT_QUESTION = "Analyze this incident and recommend remediation steps.";
 
+const LOADING_STEPS = [
+  "Ingesting source documents...",
+  "Extracting security claims...",
+  "Retrieving evidence snippets...",
+  "Running verification engine...",
+  "Finalizing trust report...",
+];
+
 export default function HomePage() {
+  const router = useRouter();
   const [question, setQuestion] = useState<string>(DEFAULT_QUESTION);
   const [domain, setDomain] = useState<DomainPreset>("Cyber/Security");
   const [strictness, setStrictness] = useState<StrictnessPreset>("Balanced");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [loadingStep, setLoadingStep] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [lastSessionId, setLastSessionId] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -25,6 +36,19 @@ export default function HomePage() {
     setDomain(prefs.domain);
     setStrictness(prefs.strictness);
   }, []);
+
+  // Cycle loading messages
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % LOADING_STEPS.length);
+      }, 1500);
+    } else {
+      setLoadingStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -43,6 +67,12 @@ export default function HomePage() {
 
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (uploadedFiles.length === 0) {
+      setErrorMessage("Please attach source documents before running verification.");
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage("");
 
@@ -52,14 +82,10 @@ export default function HomePage() {
       formData.append("domain", domain);
       formData.append("strictness", strictness);
 
-      if (uploadedFiles.length > 0) {
-        uploadedFiles.forEach(file => {
-          formData.append("files", file);
-        });
-        formData.append("useDemoDataset", "false");
-      } else {
-        formData.append("useDemoDataset", "true");
-      }
+      uploadedFiles.forEach(file => {
+        formData.append("files", file);
+      });
+      formData.append("useDemoDataset", "false");
 
       const response = await fetch("/api/verify", {
         method: "POST",
@@ -73,11 +99,15 @@ export default function HomePage() {
       const data = (await response.json()) as VerificationSession;
       setLastSession(data);
       setLastSessionId(data.id);
+
+      // Navigate to report automatically after 800ms success delay
+      setTimeout(() => {
+        router.push("/report");
+      }, 800);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown verify error";
       setErrorMessage(message);
       setLastSessionId(null);
-    } finally {
       setIsLoading(false);
     }
   }
@@ -93,98 +123,169 @@ export default function HomePage() {
   }
 
   return (
-    <section className="stack">
+    <section className="stack" style={{ gap: '0' }}>
       <div className="hero-shell">
+        {/* Floating Background Intelligence Assets */}
+        <div className="hero-visual-wrapper">
+          <div className="floating-asset asset-sticky">
+            <div className="panel" style={{
+              padding: '16px',
+              maxWidth: '220px',
+              background: 'rgba(254, 249, 195, 0.9)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(234, 179, 8, 0.2)',
+              transform: 'rotate(-2deg)',
+              boxShadow: '0 20px 40px -15px rgba(133, 77, 14, 0.15)',
+              borderRadius: '12px'
+            }}>
+              <div style={{ width: '8px', height: '8px', background: '#dc2626', borderRadius: '50%', margin: '0 auto 10px' }} />
+              <p style={{ fontSize: '0.9rem', color: '#854d0e', fontWeight: 600, lineHeight: 1.4, textAlign: 'left' }}>
+                Double check the breach incident report for claim extraction...
+              </p>
+            </div>
+          </div>
+
+          <div className="floating-asset asset-checkbox">
+            <div className="panel" style={{
+              padding: '24px',
+              borderRadius: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'white',
+              boxShadow: 'var(--shadow-xl)',
+              border: '1px solid var(--border)'
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: 'var(--accent)',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '1.25rem',
+                fontWeight: 800
+              }}>✓</div>
+            </div>
+          </div>
+
+          <div className="floating-asset asset-reminder">
+            <div className="panel" style={{
+              padding: '24px',
+              borderRadius: '32px',
+              textAlign: 'left',
+              minWidth: '280px',
+              background: 'rgba(255, 255, 255, 0.8)',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-xl)'
+            }}>
+              <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', letterSpacing: '0.08em' }}>Active Audit</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '52px',
+                  height: '52px',
+                  background: 'var(--canvas)',
+                  borderRadius: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                }}>🕒</div>
+                <div>
+                  <p style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)', margin: 0 }}>Soc2 Compliance</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>Verification in progress</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="floating-asset asset-integrations">
+            <div className="panel" style={{
+              padding: '28px',
+              borderRadius: '34px',
+              minWidth: '320px',
+              background: 'white',
+              boxShadow: '0 30px 60px -12px rgba(0,0,0,0.1)',
+              border: '1px solid var(--border)'
+            }}>
+              <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '0.08em' }}>Verified Intelligence</p>
+              <div style={{ display: 'flex', gap: '14px' }}>
+                {['📄', '📊', '🛡️', '⚡'].map((emoji, i) => (
+                  <div key={i} style={{
+                    width: '48px',
+                    height: '48px',
+                    background: 'var(--surface-soft)',
+                    borderRadius: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.3rem',
+                    transition: 'transform 0.2s ease'
+                  }}>{emoji}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="hero-content">
-          <p className="hero-kicker">Cyber Trust Layer</p>
-          <h1 className="hero-title">AI output you can actually defend.</h1>
-          <p className="hero-subtitle">
-            ProofStack turns raw AI draft answers into audit-ready trust reports by extracting claims,
-            tracing source evidence, and surfacing hallucination risks before they hit production.
+          <div style={{ marginBottom: '12px' }}>
+            <span className="hero-kicker" style={{ borderRadius: '999px', padding: '8px 20px', fontSize: '0.85rem' }}>ProofStack AI Auditor v2.1</span>
+          </div>
+          <h1 className="hero-title">Think, verify, and trace <br /> all in one place.</h1>
+          <p className="hero-subtitle" style={{ fontSize: '1.3rem', maxWidth: '42ch' }}>
+            Bridge the trust gap in security operations. ProofStack automatically
+            audits AI-generated security briefs against your ground-truth data.
           </p>
           <div className="hero-actions">
             <a href="#run-verification" className="button-primary">
-              Run Verification Pass
+              Run Verification Engine
             </a>
             <Link href="/report" className="button-secondary">
               Inspect Latest Audit
             </Link>
           </div>
         </div>
-
-        <div className="hero-visual-wrapper">
-          <img
-            src="/images/hero_visual.png"
-            alt="ProofStack Verification Visual"
-            className="hero-image"
-          />
-          <div className="hero-glass-card">
-            <div className="glass-stat">
-              <span className="stat-label">Verification Rate</span>
-              <span className="stat-value">99.8%</span>
-            </div>
-            <div className="glass-divider" />
-            <div className="glass-stat">
-              <span className="stat-label">Source Traceability</span>
-              <span className="stat-value">Instant</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-chip-grid" aria-label="Key Benefits">
-          <article className="hero-chip">
-            <p className="kicker">Problem</p>
-            <p>AI hallucinations in security ops can lead to catastrophic false confidence.</p>
-          </article>
-          <article className="hero-chip">
-            <p className="kicker">Solution</p>
-            <p>Rigorous claim-by-claim verification against your own ground-truth docs.</p>
-          </article>
-          <article className="hero-chip">
-            <p className="kicker">Trust</p>
-            <p>A verifiable audit trail for every single word the AI generates.</p>
-          </article>
-          <article className="hero-chip">
-            <p className="kicker">Scale</p>
-            <p>Maintain manual oversight quality at automated response speeds.</p>
-          </article>
-        </div>
       </div>
 
       <div className="mission-grid">
-        <article className="panel mission-card">
+        <article className="mission-card">
           <div className="card-icon">🔍</div>
-          <h3>Source-Grounded by Design</h3>
+          <h3>Traceable by Design</h3>
           <p className="helper-line">
-            Every verdict points directly to exact evidence snippets and source filenames. No more hunting for "receipts."
+            Every AI verdict points directly to exact evidence snippets. No more hunting for "receipts."
           </p>
         </article>
-        <article className="panel mission-card">
+        <article className="mission-card">
           <div className="card-icon">🛡️</div>
-          <h3>Audit-Ready Artifacts</h3>
+          <h3>Defensible Reports</h3>
           <p className="helper-line">
-            Generate defensible markdown reports ready for stakeholders, regulators, or incident response leaders.
+            Generate audit-ready artifacts for stakeholders, regulators, or incident response leaders.
           </p>
         </article>
-        <article className="panel mission-card">
+        <article className="mission-card">
           <div className="card-icon">⚡</div>
-          <h3>Incident-Paced Review</h3>
+          <h3>Paced for Security</h3>
           <p className="helper-line">
-            Purpose-built interface for high-pressure security environments where speed and accuracy are non-negotiable.
+            Built for high-pressure security environments where speed and accuracy are non-negotiable.
           </p>
         </article>
       </div>
 
-      <div id="run-verification" className="section-header" style={{ marginTop: '60px' }}>
-        <p className="kicker">Verification Engine</p>
-        <h2 className="page-heading page-heading-sub">Run an Evidence Pass</h2>
+      <div id="run-verification" className="section-header">
+        <p className="kicker">Evidence Launchpad</p>
+        <h2 className="page-heading">Run a Verification Pass</h2>
         <p className="page-subtitle">
           Configure your investigation parameters and run the verification engine.
-          ProofStack will trace every claim in the draft against your source documents.
         </p>
       </div>
 
-      <div className="engine-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px' }}>
+
+      <div className="engine-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '48px', padding: '0 60px 140px' }}>
         <div className="panel stack">
           <h3>1. Source Documents</h3>
           <p className="helper-line">Upload security documents such as Incident Reports, Security Policies, System Logs, or Threat Intel feeds for evidence-backed verification.</p>
@@ -307,6 +408,22 @@ export default function HomePage() {
           </div>
         </div>
       ) : null}
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loading-card">
+            <div className="loading-spinner-wrapper">
+              <div className="loading-pulse" />
+              <div className="loading-spinner" />
+            </div>
+            <div className="loading-text-stack">
+              <p className="loading-subtext">Verification in progress</p>
+              <p className="loading-step-text">{LOADING_STEPS[loadingStep]}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
