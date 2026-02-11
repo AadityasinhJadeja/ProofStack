@@ -1,4 +1,4 @@
-import type { VerificationResult } from "./verifyClaims";
+import type { ClaimVerdict } from "@/lib/types/proofstack";
 
 export interface RedlineOutput {
   verifiedText: string;
@@ -10,7 +10,7 @@ export interface RedlineOutput {
  */
 export async function redlineAnswer(
   draftText: string,
-  verificationResults: VerificationResult[],
+  verificationResults: ClaimVerdict[],
 ): Promise<RedlineOutput> {
   // TODO(Phase 8): rewrite using only supported claims and caveat weak claims.
   // TODO(Phase 8): remove unsupported content and compute a draft-vs-verified diff.

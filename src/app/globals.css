@@ -59,3 +59,57 @@ pre {
   margin: 0;
   white-space: pre-wrap;
 }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px;
+  vertical-align: top;
+}
+
+.badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 10px;
+  border: 1px solid #d1d5db;
+  background: #f3f4f6;
+  text-transform: capitalize;
+}
+
+.badge-supported {
+  border-color: #4caf50;
+  background: #eef9ef;
+}
+
+.badge-weak {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.badge-unsupported {
+  border-color: #e53935;
+  background: #fef2f2;
+}
+
+.results-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.evidence-drawer {
+  align-content: start;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .results-layout {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,21 +1,34 @@
-export interface SourceDocument {
-  sourceId: string;
-  rawText: string;
-}
+import type { Chunk, SourceDoc } from "@/lib/types/proofstack";
 
-export interface TextChunk {
-  chunkId: string;
-  sourceId: string;
-  text: string;
-}
+const CHUNK_WORD_SIZE = 120;
 
 /**
- * Splits source documents into indexable text chunks.
+ * Deterministically splits each source document into fixed-size chunks.
+ * Chunk IDs are stable across runs as long as source IDs and source text remain unchanged.
  */
-export async function chunkSources(sources: SourceDocument[]): Promise<TextChunk[]> {
-  // TODO(Phase 1): support paste text and PDF upload ingestion paths.
-  // TODO(Phase 1): chunk text at ~500-800 tokens and preserve source IDs.
-  // TODO(Phase 1): surface source health metrics (chunk count and word count).
-  void sources;
-  return [];
+export function chunkSources(sources: SourceDoc[]): Chunk[] {
+  return sources.flatMap((source) => {
+    const words = source.content.split(/\s+/).filter(Boolean);
+
+    if (words.length === 0) {
+      return [];
+    }
+
+    const chunks: Chunk[] = [];
+
+    for (let start = 0; start < words.length; start += CHUNK_WORD_SIZE) {
+      const end = Math.min(start + CHUNK_WORD_SIZE, words.length);
+      const chunkWords = words.slice(start, end);
+      const chunkIndex = Math.floor(start / CHUNK_WORD_SIZE) + 1;
+
+      chunks.push({
+        id: `${source.id}-chunk-${String(chunkIndex).padStart(3, "0")}`,
+        sourceId: source.id,
+        text: chunkWords.join(" "),
+        tokenEstimate: chunkWords.length,
+      });
+    }
+
+    return chunks;
+  });
 }
