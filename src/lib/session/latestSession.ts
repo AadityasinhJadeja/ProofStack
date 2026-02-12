@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { VerificationSession } from "@/lib/types/proofstack";
@@ -40,5 +40,16 @@ export async function getLatestSession(): Promise<VerificationSession | null> {
     };
   } catch {
     return null;
+  }
+}
+
+/**
+ * Removes the persisted latest verification session if present.
+ */
+export async function clearLatestSession(): Promise<void> {
+  try {
+    await unlink(SESSION_FILE);
+  } catch {
+    // No-op if session file does not exist.
   }
 }

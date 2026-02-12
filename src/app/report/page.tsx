@@ -1,13 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { ClaimTable } from "@/components/report/ClaimTable";
-import { EvidenceDrawer } from "@/components/report/EvidenceDrawer";
+import { ScoreExplainabilityPanel } from "@/components/report/ScoreExplainabilityPanel";
 import { ScoreCard } from "@/components/report/ScoreCard";
-import { getLastSession } from "@/lib/sessionStore";
-import type { Claim, ClaimVerdict, EvidenceSnippet, VerificationSession } from "@/lib/types/proofstack";
+import { computeImpactMetrics, computeTrustScoreBreakdown } from "@/lib/pipeline/scoreReport";
+import { clearLastSession, getLastSession } from "@/lib/sessionStore";
+import type { Claim, ClaimVerdict, VerificationSession } from "@/lib/types/proofstack";
+
+interface EvidenceLineageItem {
+  label: string;
+  snippetId: string;
+  claimId: string;
+  sourceName: string;
+  relevanceScore: number;
+  chunkIds: string[];
+  snippetText: string;
+}
+
+function parseEvidenceLabelMap(verifiedAnswer: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const lines = verifiedAnswer.split("\n");
+
+  for (const line of lines) {
+    const match = line.trim().match(/^\[(E\d+)\]\s*=\s*(.+)$/);
+    if (!match) {
+      continue;
+    }
+
+    const [, label, snippetId] = match;
+    map.set(label, snippetId.trim());
+  }
+
+  return map;
+}
+
+function stripEvidenceIndexSection(verifiedAnswer: string): string {
+  const marker = "\nEvidence index:";
+  const markerIndex = verifiedAnswer.indexOf(marker);
+
+  if (markerIndex === -1) {
+    return verifiedAnswer;
+  }
+
+  return verifiedAnswer.slice(0, markerIndex).trimEnd();
+}
+
+function sortEvidenceLabels(labels: string[]): string[] {
+  return labels.sort((a, b) => {
+    const aNum = Number.parseInt(a.replace(/[^\d]/g, ""), 10);
+    const bNum = Number.parseInt(b.replace(/[^\d]/g, ""), 10);
+
+    if (Number.isFinite(aNum) && Number.isFinite(bNum) && aNum !== bNum) {
+      return aNum - bNum;
+    }
+
+    return a.localeCompare(b);
+  });
+}
 
 function highestRiskClaim(claims: Claim[], verdictByClaimId: Map<string, ClaimVerdict>): Claim | null {
   const rank = (claim: Claim): number => {
@@ -40,13 +91,15 @@ export default function ReportPage() {
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
+  const [isClearing, setIsClearing] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [infoMessage, setInfoMessage] = useState<string>("");
+  const [selectedEvidenceLabel, setSelectedEvidenceLabel] = useState<string | null>(null);
+  const evidenceLineageRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const latest = getLastSession();
     setSession(latest);
-    setSelectedClaimId(latest?.claims[0]?.id ?? null);
     setIsLoading(false);
   }, []);
 
@@ -59,36 +112,6 @@ export default function ReportPage() {
 
     for (const verdict of session.claimVerdicts) {
       map.set(verdict.claimId, verdict);
-    }
-
-    return map;
-  }, [session]);
-
-  const evidenceByClaimId = useMemo(() => {
-    const map = new Map<string, EvidenceSnippet[]>();
-
-    if (!session) {
-      return map;
-    }
-
-    for (const snippet of session.evidenceSnippets) {
-      const existing = map.get(snippet.claimId) ?? [];
-      existing.push(snippet);
-      map.set(snippet.claimId, existing);
-    }
-
-    return map;
-  }, [session]);
-
-  const sourceNameById = useMemo(() => {
-    const map = new Map<string, string>();
-
-    if (!session) {
-      return map;
-    }
-
-    for (const source of session.sources) {
-      map.set(source.id, source.fileName);
     }
 
     return map;
@@ -108,13 +131,145 @@ export default function ReportPage() {
     return counts;
   }, [session]);
 
-  const selectedClaim = session?.claims.find((claim) => claim.id === selectedClaimId) ?? null;
-  const selectedVerdict = selectedClaim ? verdictByClaimId.get(selectedClaim.id) : undefined;
-  const selectedEvidence = selectedClaim ? evidenceByClaimId.get(selectedClaim.id) ?? [] : [];
+  const sourceNameById = useMemo(() => {
+    const map = new Map<string, string>();
+
+    if (!session) {
+      return map;
+    }
+
+    for (const source of session.sources) {
+      map.set(source.id, source.fileName);
+    }
+
+    return map;
+  }, [session]);
+
+  const snippetById = useMemo(() => {
+    const map = new Map<string, VerificationSession["evidenceSnippets"][number]>();
+
+    if (!session) {
+      return map;
+    }
+
+    for (const snippet of session.evidenceSnippets) {
+      map.set(snippet.id, snippet);
+    }
+
+    return map;
+  }, [session]);
+
+  const evidenceLabelToSnippetId = useMemo(() => {
+    if (!session) {
+      return new Map<string, string>();
+    }
+
+    if (Array.isArray(session.evidenceReferences) && session.evidenceReferences.length > 0) {
+      return new Map(session.evidenceReferences.map((reference) => [reference.label, reference.snippetId]));
+    }
+
+    // Backward compatibility for previously-saved sessions.
+    return parseEvidenceLabelMap(session.verifiedAnswer);
+  }, [session]);
+
+  const evidenceLabels = useMemo(
+    () => sortEvidenceLabels(Array.from(evidenceLabelToSnippetId.keys())),
+    [evidenceLabelToSnippetId],
+  );
+
+  const evidenceLineageByLabel = useMemo(() => {
+    const map = new Map<string, EvidenceLineageItem>();
+
+    if (!session) {
+      return map;
+    }
+
+    for (const [label, snippetId] of evidenceLabelToSnippetId.entries()) {
+      const snippet = snippetById.get(snippetId);
+      if (!snippet) {
+        continue;
+      }
+
+      const chunkIds = session.chunks
+        .filter((chunk) => chunk.sourceId === snippet.sourceId && chunk.text === snippet.snippet)
+        .map((chunk) => chunk.id);
+
+      map.set(label, {
+        label,
+        snippetId,
+        claimId: snippet.claimId,
+        sourceName: sourceNameById.get(snippet.sourceId) ?? snippet.sourceId,
+        relevanceScore: snippet.relevanceScore,
+        chunkIds,
+        snippetText: snippet.snippet,
+      });
+    }
+
+    return map;
+  }, [session, evidenceLabelToSnippetId, snippetById, sourceNameById]);
+
+  const selectedEvidenceLineage = selectedEvidenceLabel
+    ? evidenceLineageByLabel.get(selectedEvidenceLabel) ?? null
+    : null;
+
+  function openEvidenceLineage(label: string): void {
+    setSelectedEvidenceLabel(label);
+    window.requestAnimationFrame(() => {
+      evidenceLineageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function renderVerifiedAnswerWithRefs(text: string) {
+    const parts = text.split(/(\[E\d+\])/g);
+
+    return parts.map((part, index) => {
+      const match = part.match(/^\[(E\d+)\]$/);
+      if (!match) {
+        return part;
+      }
+
+      const label = match[1];
+      if (!evidenceLineageByLabel.has(label)) {
+        return part;
+      }
+
+      const isActive = selectedEvidenceLabel === label;
+
+      return (
+        <button
+          key={`${label}-${index}`}
+          type="button"
+          className={isActive ? "evidence-ref-button evidence-ref-button-active" : "evidence-ref-button"}
+          onClick={() => openEvidenceLineage(label)}
+          aria-label={`Open evidence lineage for ${part}`}
+        >
+          {part}
+        </button>
+      );
+    });
+  }
 
   const weakCount = session?.trustReport.weakCount ?? 0;
   const unsupportedCount = session?.trustReport.unsupportedCount ?? 0;
   const riskClaim = session ? highestRiskClaim(session.claims, verdictByClaimId) : null;
+  const scoreBreakdown = useMemo(() => {
+    if (!session) {
+      return null;
+    }
+
+    return session.trustReport.scoreBreakdown ?? computeTrustScoreBreakdown(session.claims, session.claimVerdicts);
+  }, [session]);
+  const impactMetrics = useMemo(() => {
+    if (!session) {
+      return null;
+    }
+
+    return session.trustReport.impactMetrics ?? computeImpactMetrics(session.claims, session.claimVerdicts);
+  }, [session]);
+  const verifiedAnswerForDisplay = useMemo(
+    () => (session ? stripEvidenceIndexSection(session.verifiedAnswer) : ""),
+    [session],
+  );
 
   async function handleExport() {
     if (!session) {
@@ -158,6 +313,31 @@ export default function ReportPage() {
     }
   }
 
+  async function handleClearReport() {
+    if (!session || isClearing) {
+      return;
+    }
+
+    setIsClearing(true);
+    setErrorMessage("");
+    setInfoMessage("");
+
+    try {
+      clearLastSession();
+      const response = await fetch("/api/verify/latest", { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error(`Clear failed with status ${response.status}`);
+      }
+      setSession(null);
+      setSelectedEvidenceLabel(null);
+      setInfoMessage("Report cleared. You can run your next analysis when ready.");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to clear report.");
+    } finally {
+      setIsClearing(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <section className="stack">
@@ -171,6 +351,7 @@ export default function ReportPage() {
     return (
       <section className="stack">
         <h1 className="page-heading">Trust Report</h1>
+        {infoMessage ? <p className="status-banner">{infoMessage}</p> : null}
         <div className="panel stack empty-state">
           <p>No verification session found.</p>
           <p className="helper-line">Run verification on Home first, then return here to inspect the report.</p>
@@ -199,14 +380,24 @@ export default function ReportPage() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            type="button"
-            className="button-secondary"
-            onClick={handleExport}
-            disabled={isExporting}
-          >
-            {isExporting ? "Exporting..." : "Export Report"}
-          </button>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={handleExport}
+              disabled={isExporting || isClearing}
+            >
+              {isExporting ? "Exporting..." : "Export Report"}
+            </button>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={handleClearReport}
+              disabled={isClearing || isExporting}
+            >
+              {isClearing ? "Clearing..." : "Clear Report"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -214,6 +405,13 @@ export default function ReportPage() {
       {errorMessage ? (
         <p role="alert" className="alert">
           {errorMessage}
+        </p>
+      ) : null}
+      {infoMessage ? <p className="status-banner">{infoMessage}</p> : null}
+
+      {session.challengeMode ? (
+        <p className="status-banner">
+          Challenge demo mode active: one intentionally false claim was injected to validate that ProofStack flags unsupported/contradictory output.
         </p>
       ) : null}
 
@@ -247,6 +445,29 @@ export default function ReportPage() {
         </div>
       </div>
 
+      {impactMetrics ? (
+        <div className="panel stack">
+          <h2>Quantified Impact</h2>
+          <p className="helper-line">
+            Converts verification output into decision metrics your reviewers can act on quickly.
+          </p>
+          <div className="metric-row">
+            <span className="metric-pill">Supported claims: {impactMetrics.supportedRatePct}%</span>
+            <span className="metric-pill">
+              Critical unsupported: {impactMetrics.criticalUnsupportedCount}
+            </span>
+            <span className="metric-pill">
+              Estimated review time: {impactMetrics.estimatedReviewMinutes} min
+            </span>
+          </div>
+          <p className="section-note">
+            Review-time estimate formula: <code>{impactMetrics.reviewTimeFormula}</code>
+          </p>
+        </div>
+      ) : null}
+
+      {scoreBreakdown ? <ScoreExplainabilityPanel breakdown={scoreBreakdown} /> : null}
+
       <div className="panel stack panel-raised">
         <div style={{ borderLeft: '4px solid var(--accent)', paddingLeft: '16px' }}>
           <h2>Audit Outcome: Draft vs Verified</h2>
@@ -266,30 +487,63 @@ export default function ReportPage() {
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)' }}>
               <span>🛡️</span> Verified Answer
             </h3>
-            <pre style={{ marginTop: '12px', fontSize: '1rem', fontWeight: 500 }}>{session.verifiedAnswer}</pre>
+            <pre style={{ marginTop: '12px', fontSize: '1rem', fontWeight: 500 }}>
+              {renderVerifiedAnswerWithRefs(verifiedAnswerForDisplay)}
+            </pre>
           </div>
         </div>
       </div>
 
-      <div className="results-layout">
-        <div className="panel stack">
-          <h2>Claims</h2>
-          <p className="helper-line">Select a claim to inspect the exact evidence snippets used for verification.</p>
-          <ClaimTable
-            claims={session.claims}
-            verdictByClaimId={verdictByClaimId}
-            onViewEvidence={(claimId) => setSelectedClaimId(claimId)}
-            selectedClaimId={selectedClaimId}
-          />
-        </div>
+      {selectedEvidenceLineage ? (
+        <section ref={evidenceLineageRef} className="panel stack evidence-lineage-panel">
+          <div className="evidence-lineage-header">
+            <div>
+              <h2>Evidence Lineage</h2>
+              <p className="helper-line">
+                You opened [{selectedEvidenceLineage.label}] from the verified answer.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => setSelectedEvidenceLabel(null)}
+            >
+              Close
+            </button>
+          </div>
 
-        <EvidenceDrawer
-          claim={selectedClaim}
-          verdict={selectedVerdict}
-          evidence={selectedEvidence}
-          sourceNameById={sourceNameById}
-        />
-      </div>
+          <div className="evidence-item stack">
+            <p>
+              <strong>Reference:</strong> [{selectedEvidenceLineage.label}]
+            </p>
+            <p>
+              <strong>Snippet ID:</strong> {selectedEvidenceLineage.snippetId}
+            </p>
+            <p>
+              <strong>Claim ID:</strong> {selectedEvidenceLineage.claimId}
+            </p>
+            <p>
+              <strong>Source:</strong> {selectedEvidenceLineage.sourceName}
+            </p>
+            <p>
+              <strong>Relevance:</strong> {selectedEvidenceLineage.relevanceScore.toFixed(3)}
+            </p>
+            <p>
+              <strong>Chunk IDs:</strong>{" "}
+              {selectedEvidenceLineage.chunkIds.length > 0
+                ? selectedEvidenceLineage.chunkIds.join(", ")
+                : "Unavailable"}
+            </p>
+            <pre>{selectedEvidenceLineage.snippetText}</pre>
+          </div>
+        </section>
+      ) : evidenceLabels.length > 0 ? (
+        <p className="helper-line">
+          Click any <code>[E#]</code> citation in Verified Answer to open its evidence lineage.
+        </p>
+      ) : (
+        <p className="drawer-empty">No evidence references were found in the verified answer.</p>
+      )}
 
       <details className="panel">
         <summary>Show debug details</summary>

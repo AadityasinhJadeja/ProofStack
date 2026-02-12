@@ -85,6 +85,14 @@ export function getLastSession(): VerificationSession | null {
   return parsed;
 }
 
+export function clearLastSession(): void {
+  if (!canUseStorage()) {
+    return;
+  }
+
+  window.localStorage.removeItem(LAST_SESSION_KEY);
+}
+
 export function getPrefs(): SessionPrefs {
   if (!canUseStorage()) {
     return DEFAULT_PREFS;

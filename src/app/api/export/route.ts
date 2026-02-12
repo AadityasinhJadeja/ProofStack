@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { computeImpactMetrics, computeTrustScoreBreakdown } from "@/lib/pipeline/scoreReport";
 import type { ClaimVerdict, EvidenceSnippet, VerificationSession } from "@/lib/types/proofstack";
 
 function escapeCell(value: string): string {
@@ -35,6 +36,12 @@ function buildReportMarkdown(session: VerificationSession): string {
   const verdictByClaim = buildVerdictByClaim(session.claimVerdicts);
   const evidenceByClaim = buildEvidenceByClaim(session.evidenceSnippets);
   const sourceById = new Map(session.sources.map((source) => [source.id, source.fileName]));
+  const scoreBreakdown =
+    session.trustReport.scoreBreakdown ??
+    computeTrustScoreBreakdown(session.claims, session.claimVerdicts);
+  const impactMetrics =
+    session.trustReport.impactMetrics ??
+    computeImpactMetrics(session.claims, session.claimVerdicts);
 
   const lines: string[] = [];
 
@@ -46,6 +53,10 @@ function buildReportMarkdown(session: VerificationSession): string {
   lines.push(`- Session Created At: ${session.createdAt}`);
   lines.push(`- Domain: ${session.domain}`);
   lines.push(`- Strictness: ${session.strictness}`);
+  lines.push(`- Challenge Demo Mode: ${session.challengeMode ? "Yes" : "No"}`);
+  if (session.challengeMode && session.challengeInjectedClaimId) {
+    lines.push(`- Injected Challenge Claim ID: ${session.challengeInjectedClaimId}`);
+  }
   lines.push("");
 
   lines.push("## Trust Summary");
@@ -53,6 +64,40 @@ function buildReportMarkdown(session: VerificationSession): string {
   lines.push(`- Supported: ${session.trustReport.supportedCount}`);
   lines.push(`- Weak: ${session.trustReport.weakCount}`);
   lines.push(`- Unsupported: ${session.trustReport.unsupportedCount}`);
+  lines.push(`- Supported Claims %: ${impactMetrics.supportedRatePct}%`);
+  lines.push(`- Critical Unsupported Count: ${impactMetrics.criticalUnsupportedCount}`);
+  lines.push(`- Estimated Time-to-Review: ${impactMetrics.estimatedReviewMinutes} minutes`);
+  lines.push(`- Review-Time Formula: ${impactMetrics.reviewTimeFormula}`);
+  lines.push(`- Raw Points: ${scoreBreakdown.rawPoints.toFixed(2)}`);
+  lines.push(`- Normalized Score (pre-clamp): ${scoreBreakdown.normalizedScore.toFixed(2)}`);
+  lines.push(`- Formula: ${scoreBreakdown.formula}`);
+  lines.push("");
+  lines.push("### Score Explainability");
+  lines.push("| Rule | Weight | Count |");
+  lines.push("| --- | ---: | ---: |");
+  lines.push(`| Supported | ${scoreBreakdown.weights.supported.toFixed(2)} | ${scoreBreakdown.counts.supported} |`);
+  lines.push(`| Weak | ${scoreBreakdown.weights.weak.toFixed(2)} | ${scoreBreakdown.counts.weak} |`);
+  lines.push(
+    `| Unsupported | ${scoreBreakdown.weights.unsupported.toFixed(2)} | ${scoreBreakdown.counts.unsupported} |`,
+  );
+  lines.push(`| Pending | ${scoreBreakdown.weights.pending.toFixed(2)} | ${scoreBreakdown.counts.pending} |`);
+  lines.push(
+    `| Critical Unsupported Penalty | -${scoreBreakdown.weights.criticalUnsupportedPenalty.toFixed(2)} | ${scoreBreakdown.counts.criticalUnsupported} |`,
+  );
+  lines.push(
+    `| Contradiction Penalty | -${scoreBreakdown.weights.contradictionPenalty.toFixed(2)} | ${scoreBreakdown.counts.contradictions} |`,
+  );
+  lines.push("");
+  lines.push("### Per-Claim Score Contributions");
+  lines.push("| Claim ID | Verdict | Criticality | Base | Penalty | Net |");
+  lines.push("| --- | --- | --- | ---: | ---: | ---: |");
+
+  for (const contribution of scoreBreakdown.claimContributions) {
+    lines.push(
+      `| ${escapeCell(contribution.claimId)} | ${contribution.verdict} | ${contribution.criticality} | ${contribution.basePoints.toFixed(2)} | ${contribution.penaltyPoints.toFixed(2)} | ${contribution.netPoints.toFixed(2)} |`,
+    );
+  }
+
   lines.push("");
   lines.push("### Top Risks");
 

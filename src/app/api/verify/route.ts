@@ -10,6 +10,7 @@ import { scoreReport } from "@/lib/pipeline/scoreReport";
 import { verifyClaims } from "@/lib/pipeline/verifyClaims";
 import { setLatestSession } from "@/lib/session/latestSession";
 import type {
+  Claim,
   ClaimVerdict,
   DomainPreset,
   EvidenceSnippet,
@@ -23,6 +24,84 @@ const DOMAIN_PRESETS: DomainPreset[] = ["Cyber/Security"];
 const STRICTNESS_PRESETS: StrictnessPreset[] = ["Fast", "Balanced", "Strict"];
 const MAX_CLAIMS = 12;
 const TOP_K = 3;
+const CHALLENGE_FALSE_CLAIM_ID = "claim-challenge-false";
+const CHALLENGE_FALSE_CLAIM_TEXT =
+  "All authentication attempts in the incident window were successful with zero failed logins.";
+
+function injectChallengeClaim(claims: Claim[]): Claim[] {
+  const challengeClaim: Claim = {
+    id: CHALLENGE_FALSE_CLAIM_ID,
+    text: CHALLENGE_FALSE_CLAIM_TEXT,
+    claimType: "fact",
+    criticality: "high",
+  };
+
+  const withoutExisting = claims.filter((claim) => claim.id !== CHALLENGE_FALSE_CLAIM_ID);
+  if (withoutExisting.length >= MAX_CLAIMS) {
+    return [challengeClaim, ...withoutExisting.slice(0, MAX_CLAIMS - 1)];
+  }
+
+  return [challengeClaim, ...withoutExisting];
+}
+
+function hasAuthenticationFailureSignals(sources: SourceDoc[]): boolean {
+  const corpus = sources.map((source) => source.content.toLowerCase()).join("\n");
+  const indicators = [
+    "failed login",
+    "failed authentication",
+    "authentication failures",
+    "credential stuffing",
+    "unauthorized",
+    "401",
+    "invalid credential",
+  ];
+
+  return indicators.some((indicator) => corpus.includes(indicator));
+}
+
+function applyChallengeClaimOverride(
+  claimVerdicts: ClaimVerdict[],
+  evidenceByClaimId: Map<string, EvidenceSnippet[]>,
+  sources: SourceDoc[],
+): ClaimVerdict[] {
+  const hasFailureSignals = hasAuthenticationFailureSignals(sources);
+
+  return claimVerdicts.map((verdict) => {
+    if (verdict.claimId !== CHALLENGE_FALSE_CLAIM_ID) {
+      return verdict;
+    }
+
+    const evidenceForClaim = evidenceByClaimId.get(verdict.claimId) ?? [];
+    const fallbackEvidenceIds = evidenceForClaim.slice(0, 3).map((snippet) => snippet.id);
+
+    if (hasFailureSignals) {
+      return {
+        ...verdict,
+        verdict: "unsupported",
+        confidence: Math.max(verdict.confidence, 0.9),
+        contradictionFound: true,
+        evidenceSnippetIds:
+          verdict.evidenceSnippetIds.length > 0 ? verdict.evidenceSnippetIds : fallbackEvidenceIds,
+        explanation:
+          "Challenge mode contradiction: sources show failed authentication activity, so the claim that all attempts were successful is unsupported.",
+      };
+    }
+
+    if (verdict.verdict === "supported") {
+      return {
+        ...verdict,
+        verdict: "weak",
+        confidence: Math.min(verdict.confidence, 0.55),
+        evidenceSnippetIds:
+          verdict.evidenceSnippetIds.length > 0 ? verdict.evidenceSnippetIds : fallbackEvidenceIds,
+        explanation:
+          "Challenge mode guardrail: this injected claim lacks strong direct evidence and is downgraded to weak for analyst review.",
+      };
+    }
+
+    return verdict;
+  });
+}
 
 function isDomainPreset(value: unknown): value is DomainPreset {
   return typeof value === "string" && DOMAIN_PRESETS.includes(value as DomainPreset);
@@ -40,11 +119,13 @@ export async function POST(request: Request) {
   let domain: DomainPreset = "Cyber/Security";
   let strictness: StrictnessPreset = "Balanced";
   let sources: SourceDoc[] = [];
+  let challengeMode = false;
 
   if (contentType.includes("multipart/form-data")) {
     const formData = await request.formData();
     question = formData.get("question")?.toString() || "Analyze this incident and recommend remediation steps.";
     useDemoDataset = formData.get("useDemoDataset") === "true";
+    challengeMode = formData.get("challengeMode") === "true";
 
     const d = formData.get("domain");
     if (isDomainPreset(d)) domain = d;
@@ -69,6 +150,11 @@ export async function POST(request: Request) {
     useDemoDataset = rawBody.useDemoDataset === true;
     domain = isDomainPreset(rawBody.domain) ? rawBody.domain : "Cyber/Security";
     strictness = isStrictnessPreset(rawBody.strictness) ? rawBody.strictness : "Balanced";
+    challengeMode = rawBody.challengeMode === true;
+  }
+
+  if (challengeMode) {
+    useDemoDataset = true;
   }
 
   if (sources.length === 0 && useDemoDataset) {
@@ -89,7 +175,8 @@ export async function POST(request: Request) {
   });
 
   const draft = await draftAnswer({ question, domain, strictness, sources });
-  const claims = (await extractClaims(draft.draftText)).slice(0, MAX_CLAIMS);
+  const extractedClaims = (await extractClaims(draft.draftText)).slice(0, MAX_CLAIMS);
+  const claims = challengeMode ? injectChallengeClaim(extractedClaims) : extractedClaims;
 
   const evidenceSnippets = claims.flatMap((claim) => retrieveEvidence(claim, chunks, TOP_K));
 
@@ -108,8 +195,11 @@ export async function POST(request: Request) {
     explanation: result.reason,
     evidenceSnippetIds: result.evidenceIds,
   }));
-  const trustReport = scoreReport(claims, claimVerdicts);
-  const verified = redlineAnswer(draft.draftText, claims, claimVerdicts, evidenceSnippets);
+  const adjustedClaimVerdicts = challengeMode
+    ? applyChallengeClaimOverride(claimVerdicts, evidenceByClaimId, sources)
+    : claimVerdicts;
+  const trustReport = scoreReport(claims, adjustedClaimVerdicts);
+  const verified = redlineAnswer(draft.draftText, claims, adjustedClaimVerdicts, evidenceSnippets);
 
   debugLog("verifyRoute", "verification_complete", {
     claimCount: claims.length,
@@ -123,6 +213,8 @@ export async function POST(request: Request) {
     question,
     draftAnswer: draft.draftText,
     verifiedAnswer: verified.verifiedText,
+    challengeMode,
+    challengeInjectedClaimId: challengeMode ? CHALLENGE_FALSE_CLAIM_ID : undefined,
     domain,
     strictness,
     useDemoDataset,
@@ -130,7 +222,8 @@ export async function POST(request: Request) {
     chunks,
     claims,
     evidenceSnippets,
-    claimVerdicts,
+    evidenceReferences: verified.evidenceReferences,
+    claimVerdicts: adjustedClaimVerdicts,
     trustReport,
   };
 

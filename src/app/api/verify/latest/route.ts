@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getLatestSession } from "@/lib/session/latestSession";
+import { clearLatestSession, getLatestSession } from "@/lib/session/latestSession";
 
 export async function GET() {
   const latest = await getLatestSession();
@@ -10,4 +10,9 @@ export async function GET() {
   }
 
   return NextResponse.json(latest);
+}
+
+export async function DELETE() {
+  await clearLatestSession();
+  return NextResponse.json({ status: "cleared" });
 }

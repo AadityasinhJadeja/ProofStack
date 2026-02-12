@@ -1,8 +1,9 @@
-import type { Claim, ClaimVerdict, EvidenceSnippet } from "@/lib/types/proofstack";
+import type { Claim, ClaimVerdict, EvidenceReference, EvidenceSnippet } from "@/lib/types/proofstack";
 
 export interface RedlineOutput {
   verifiedText: string;
   diffText: string;
+  evidenceReferences: EvidenceReference[];
 }
 
 function toSentence(value: string): string {
@@ -30,12 +31,15 @@ function createEvidenceLabeler() {
     return label;
   }
 
-  return {
-    labelFor,
-    entries(): Array<[string, string]> {
-      return Array.from(labelBySnippetId.entries());
-    },
-  };
+    return {
+      labelFor,
+      entries(): EvidenceReference[] {
+        return Array.from(labelBySnippetId.entries()).map(([snippetId, label]) => ({
+          label,
+          snippetId,
+        }));
+      },
+    };
 }
 
 function refsForClaim(
@@ -120,14 +124,9 @@ export function redlineAnswer(
     sections.push("");
   }
 
-  const evidenceIndex = labeler.entries();
-  if (evidenceIndex.length > 0) {
-    sections.push("Evidence index:");
-    sections.push(...evidenceIndex.map(([snippetId, label]) => `[${label}] = ${snippetId}`));
-  }
-
   const verifiedText = sections.join("\n").trim();
   const diffText = `Draft length: ${draftText.length} chars\nVerified length: ${verifiedText.length} chars`;
+  const evidenceReferences = labeler.entries();
 
-  return { verifiedText, diffText };
+  return { verifiedText, diffText, evidenceReferences };
 }

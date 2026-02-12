@@ -10,6 +10,8 @@ import type { DomainPreset, StrictnessPreset, VerificationSession } from "@/lib/
 const DOMAIN_OPTIONS: DomainPreset[] = ["Cyber/Security"];
 const STRICTNESS_OPTIONS: StrictnessPreset[] = ["Fast", "Balanced", "Strict"];
 const DEFAULT_QUESTION = "Analyze this incident and recommend remediation steps.";
+const CHALLENGE_QUESTION =
+  "Challenge demo: Analyze this incident and determine whether all authentication attempts were successful.";
 
 const LOADING_STEPS = [
   "Ingesting source documents...",
@@ -65,6 +67,16 @@ export default function HomePage() {
     fileInputRef.current?.click();
   };
 
+  function completeVerificationRun(data: VerificationSession) {
+    setLastSession(data);
+    setLastSessionId(data.id);
+
+    // Navigate to report automatically after 800ms success delay
+    setTimeout(() => {
+      router.push("/report");
+    }, 800);
+  }
+
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -97,15 +109,43 @@ export default function HomePage() {
       }
 
       const data = (await response.json()) as VerificationSession;
-      setLastSession(data);
-      setLastSessionId(data.id);
-
-      // Navigate to report automatically after 800ms success delay
-      setTimeout(() => {
-        router.push("/report");
-      }, 800);
+      completeVerificationRun(data);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown verify error";
+      setErrorMessage(message);
+      setLastSessionId(null);
+      setIsLoading(false);
+    }
+  }
+
+  async function handleRunChallengeDemo() {
+    setIsLoading(true);
+    setErrorMessage("");
+    setQuestion(CHALLENGE_QUESTION);
+
+    try {
+      const response = await fetch("/api/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question: CHALLENGE_QUESTION,
+          domain,
+          strictness,
+          useDemoDataset: true,
+          challengeMode: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Challenge demo failed with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as VerificationSession;
+      completeVerificationRun(data);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown challenge demo error";
       setErrorMessage(message);
       setLastSessionId(null);
       setIsLoading(false);
@@ -380,9 +420,23 @@ export default function HomePage() {
             </div>
           </div>
 
-          <button type="submit" className="button-primary" disabled={isLoading} style={{ marginTop: '12px', width: '100%', minHeight: '52px', fontSize: '1.1rem' }}>
-            {isLoading ? "Running Verification..." : "Run Verification Engine"}
-          </button>
+          <div style={{ display: "grid", gap: "10px", marginTop: "12px" }}>
+            <button type="submit" className="button-primary" disabled={isLoading} style={{ width: '100%', minHeight: '52px', fontSize: '1.1rem' }}>
+              {isLoading ? "Running Verification..." : "Run Verification Engine"}
+            </button>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={handleRunChallengeDemo}
+              disabled={isLoading}
+              style={{ width: "100%", minHeight: "48px" }}
+            >
+              {isLoading ? "Preparing Demo..." : "Run Failure Challenge Demo"}
+            </button>
+            <p className="helper-line" style={{ margin: 0 }}>
+              Challenge demo uses <code>datasets/demo1</code> and injects one false claim so you can show ProofStack catching it.
+            </p>
+          </div>
 
           {errorMessage ? (
             <p role="alert" className="alert">

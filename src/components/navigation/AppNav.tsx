@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/report", label: "Report" },
   { href: "/claims", label: "Claims" },
-  { href: "/settings", label: "Settings" },
+  { href: "/about", label: "About" },
 ] as const;
 
 export function AppNav() {
