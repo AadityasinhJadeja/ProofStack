@@ -1,62 +1,111 @@
 # ProofStack
 
-ProofStack is an audit layer for AI-generated cybersecurity analysis.
+ProofStack helps teams verify AI-generated answers before those answers are used for real decisions.
 
-It takes a draft answer, decomposes it into claims, verifies each claim against uploaded evidence, and produces a Trust Report with verdicts, score explainability, and exportable artifacts.
+In simple terms:
 
-## Problem
+- AI gives an answer.
+- ProofStack breaks that answer into small claims.
+- Each claim is checked against your source files.
+- You get a report that shows what is supported, weak, or unsupported.
 
-Security teams increasingly use AI for incident analysis and recommendations, but raw model output is hard to trust because it can be confident, uncited, or wrong.
+This makes AI output easier to trust, review, and share.
 
-ProofStack addresses this by adding a verification pipeline:
+## Why this project exists
 
-1. Draft answer generation
-2. Claim extraction
-3. Evidence retrieval
-4. Claim verification
-5. Trust scoring
-6. Redlined verified answer
-7. Exportable report
+AI answers are often useful, but they can also be confidently wrong.
 
-## Current Product Scope
+That is risky in any serious workflow, not just cybersecurity. Teams need a way to see:
 
-- Domain: Cyber/Security
-- Input: Uploaded files (`.pdf`, `.txt`, `.md`) or bundled demo dataset
-- Output: Trust Report, claim verdicts, evidence lineage, and markdown export
-- Modes:
-  - Standard verification
-  - Challenge mode (injects one false claim to show failure detection)
+- what the model claimed
+- what evidence supports each claim
+- where the answer is weak or unsupported
 
-## Key Features
+ProofStack is built to provide that visibility.
 
-- Deterministic trust scoring with explainability
-- Claim-level verdicts: `supported`, `weak`, `unsupported`
-- Evidence references (`[E#]`) with clickthrough lineage
-- Draft vs Verified output comparison
-- Quantified impact metrics:
-  - supported claim rate
-  - critical unsupported count
-  - estimated review time
+## Who this helps
+
+- Analysts who use AI for incident or risk summaries
+- Reviewers who need proof before approving output
+- Teams that want a repeatable verification workflow instead of one-shot AI responses
+
+## What ProofStack does
+
+1. Accepts uploaded files (`.pdf`, `.txt`, `.md`) or a demo dataset
+2. Generates a draft answer for a user question
+3. Extracts verifiable claims from the draft
+4. Retrieves relevant evidence snippets for each claim
+5. Assigns verdicts (`supported`, `weak`, `unsupported`)
+6. Computes trust score and impact metrics
+7. Produces a verified answer with evidence references
+8. Exports a markdown report
+
+## Product Screens
+
+### 1) Home
+
+Landing section and main call to action.
+
+![ProofStack Home](public/images/homepage.png)
+
+### 2) Run Verification Pass
+
+Source upload, question input, strictness controls, and challenge demo mode.
+
+![Run Verification Pass](public/images/run_verification_pass.png)
+
+### 3) Trust Report (Top Section)
+
+Session metadata, decision state, trust score summary, and top-risk context.
+
+![Trust Report Top](public/images/report_top.png)
+
+### 4) Trust Report (Details)
+
+Quantified impact, limitations and confidence, score explainability, and draft-vs-verified output.
+
+![Trust Report Details](public/images/report_details.png)
+
+### 5) Claims and Evidence
+
+Claim-level verdict table with side evidence drawer for drilldown.
+
+![Claims and Evidence Drawer](public/images/claims.png)
+
+### 6) About
+
+High-level explanation of purpose, value, and flow.
+
+![About Page](public/images/about.png)
+
+## Core Features
+
+- Claim-level verification pipeline
+- Evidence lineage from answer citations to source snippets
+- Deterministic trust score with explainability
 - Go/No-Go decision banner (`HOLD` or `SAFE TO SHARE`)
-- Limitations and confidence panel for reviewer clarity
-- Local export endpoint for audit-ready markdown output
+- Quantified impact metrics
+- Limitations and confidence panel
+- Draft vs Verified comparison
+- Markdown export for review handoff
 
-## System Architecture
+## Architecture Overview
 
-Pipeline execution in `POST /api/verify`:
+Main verification flow is implemented in `POST /api/verify`.
 
-1. Load sources (uploaded files or `datasets/demo1`)
-2. Chunk sources into deterministic text segments
-3. Generate draft answer
-4. Extract up to 12 claims
-5. Retrieve top-3 evidence snippets per claim
-6. Verify each claim against retrieved snippets
-7. Apply challenge-mode override (if enabled)
-8. Score trust report
-9. Redline final verified answer
-10. Persist latest session for report retrieval
+Pipeline stages:
 
-Main pipeline modules:
+1. source loading
+2. chunking
+3. draft answer generation
+4. claim extraction
+5. evidence retrieval
+6. claim verification
+7. trust scoring
+8. redlined verified answer
+9. session persistence
+
+Key modules:
 
 - `src/lib/pipeline/chunkSources.ts`
 - `src/lib/pipeline/draftAnswer.ts`
@@ -71,56 +120,54 @@ Main pipeline modules:
 - Next.js 15 (App Router)
 - React 19
 - TypeScript
-- Custom CSS design system (no UI framework dependency)
-- Next.js API routes for backend orchestration
-- Local session persistence:
-  - browser localStorage (`src/lib/sessionStore.ts`)
-  - latest-session file (`.proofstack/latest-session.json`)
+- Next.js API routes
+- Custom CSS design system
 
-LLM usage:
+LLM integration:
 
 - OpenAI Chat Completions via `src/lib/llm/openaiChat.ts`
-- If OpenAI is unavailable, pipeline falls back to deterministic logic for demo reliability
+- If OpenAI is not configured, fallback logic keeps the app runnable for demos
+
+## API Endpoints
+
+- `GET /api/health`  
+  returns service health
+- `POST /api/verify`  
+  runs full verification pipeline
+- `GET /api/verify/latest`  
+  returns latest session
+- `DELETE /api/verify/latest`  
+  clears latest session
+- `POST /api/export`  
+  exports markdown report
 
 ## Repository Structure
 
 ```text
 src/
   app/
-    page.tsx                 # Home: run verification
-    report/page.tsx          # Trust report artifact
-    claims/page.tsx          # Claim-level review
+    page.tsx                 # Home
+    report/page.tsx          # Trust report
+    claims/page.tsx          # Claim review
     about/page.tsx           # Product overview
     api/
-      verify/route.ts        # Main verification pipeline
-      verify/latest/route.ts # Get/clear latest session
+      verify/route.ts        # Verification pipeline
+      verify/latest/route.ts # Session retrieval/clear
       export/route.ts        # Markdown export
       health/route.ts        # Health endpoint
   components/
-    navigation/              # Top nav and page transitions
-    report/                  # Report UI modules (score, claims, decision banner)
+    navigation/
+    report/
   lib/
-    pipeline/                # Verification pipeline stages
-    report/                  # Report decision logic
-    session/                 # Latest session file storage
-    types/                   # Shared domain types
+    pipeline/
+    report/
+    session/
+    types/
 datasets/
-  demo1/                     # Stable demo dataset
+  demo1/
+public/
+  images/
 ```
-
-## API Endpoints
-
-- `GET /api/health`
-  - Returns health status
-- `POST /api/verify`
-  - Runs full verification pipeline
-  - Supports `multipart/form-data` (file uploads) and JSON payloads
-- `GET /api/verify/latest`
-  - Returns latest persisted verification session
-- `DELETE /api/verify/latest`
-  - Clears latest persisted verification session
-- `POST /api/export`
-  - Returns downloadable markdown report
 
 ## Local Development
 
@@ -129,18 +176,16 @@ Prerequisites:
 - Node.js 18+
 - npm
 
-Setup:
+Run locally:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open:
+Open `http://localhost:3000`.
 
-- `http://localhost:3000`
-
-Build and type-check:
+Validation:
 
 ```bash
 npm run typecheck
@@ -149,39 +194,36 @@ npm run build
 
 ## Environment Variables
 
-Create `.env.local` if you want live model calls:
+Create `.env.local` for live model calls:
 
 ```bash
 OPENAI_API_KEY=your_key
 OPENAI_MODEL=gpt-4.1-mini
 ```
 
-Without `OPENAI_API_KEY`, the app still runs using fallback behavior for draft, claims, and verification.
+Without `OPENAI_API_KEY`, the app still runs using fallback behavior.
 
-## Demo Flow
+## Quick Demo Flow
 
-Recommended 90-second flow:
+1. Open Home
+2. Upload files or run demo mode
+3. Click `Run Verification Engine`
+4. Open `Report` and review:
+   - decision banner
+   - verdict breakdown
+   - evidence references
+5. Export report
 
-1. Home page: upload dataset or use demo content
-2. Run normal verification to show supported and weak claims
-3. Run challenge mode to inject one false claim
-4. Open Report:
-   - show Go/No-Go decision
-   - open claim verdicts
-   - click evidence reference lineage
-   - show quantified impact
-5. Export markdown report
+## Current Limits
 
-## Known Limitations
+- Domain currently focused on Cyber/Security
+- Verification quality depends on source coverage
+- Persistence is local and file-based in current version
+- External fact checking outside uploaded sources is out of scope
 
-- Domain is currently fixed to Cyber/Security
-- Verification quality depends on source coverage and source quality
-- Current persistence is local and file-based for MVP simplicity
-- External fact checking beyond provided sources is out of scope
+## Next Steps
 
-## Next Iterations
-
-- PDF export with fixed report template
+- PDF export format
 - Persistent multi-session history
-- SOC/compliance control mapping on claims
-- CI integration for automated verification in review workflows
+- Additional domain presets
+- CI integration for automated checks
