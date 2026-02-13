@@ -26,3 +26,4 @@ pnpm-debug.log*
 # ProofStack local runtime artifacts
 .proofstack/
 **/tsconfig.tsbuildinfo
+docs/

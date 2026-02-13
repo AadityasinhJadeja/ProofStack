@@ -106,7 +106,6 @@ src/
     types/                   # Shared domain types
 datasets/
   demo1/                     # Stable demo dataset
-docs/                        # Product and implementation docs
 ```
 
 ## API Endpoints
@@ -159,7 +158,7 @@ OPENAI_MODEL=gpt-4.1-mini
 
 Without `OPENAI_API_KEY`, the app still runs using fallback behavior for draft, claims, and verification.
 
-## Demo Script (Judge Friendly)
+## Demo Flow
 
 Recommended 90-second flow:
 
@@ -173,33 +172,11 @@ Recommended 90-second flow:
    - show quantified impact
 5. Export markdown report
 
-## How This Maps to Judging Criteria
-
-Innovation and creativity:
-- Applies claim-level verification and redlined correction to AI security output
-
-Technical complexity and implementation:
-- End-to-end pipeline with structured claim/evidence graph, verdicting, scoring, and exports
-
-Impact and usefulness:
-- Converts AI output into actionable, auditable artifacts for analyst workflows
-
-Presentation and clarity:
-- Dedicated report artifact page with explainable score logic and explicit limitations
-
-## Documentation Map
-
-- `docs/masterplan.md` - product mission and roadmap
-- `docs/implementation-plan.md` - delivery plan
-- `docs/DECISIONS.md` - key design and scope decisions
-- `docs/app-flow-pages-and-roles.md` - UX flow and user roles
-- `docs/context-pack.md` - quick project context
-
 ## Known Limitations
 
 - Domain is currently fixed to Cyber/Security
 - Verification quality depends on source coverage and source quality
-- Current persistence is local and file-based for hackathon simplicity
+- Current persistence is local and file-based for MVP simplicity
 - External fact checking beyond provided sources is out of scope
 
 ## Next Iterations
