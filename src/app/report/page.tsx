@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { DecisionBanner } from "@/components/report/DecisionBanner";
+import { LimitationsConfidencePanel } from "@/components/report/LimitationsConfidencePanel";
 import { ScoreExplainabilityPanel } from "@/components/report/ScoreExplainabilityPanel";
 import { ScoreCard } from "@/components/report/ScoreCard";
 import { computeImpactMetrics, computeTrustScoreBreakdown } from "@/lib/pipeline/scoreReport";
+import { buildReportDecision, countCriticalWeakClaims } from "@/lib/report/decision";
 import { clearLastSession, getLastSession } from "@/lib/sessionStore";
 import type { Claim, ClaimVerdict, VerificationSession } from "@/lib/types/proofstack";
 
@@ -251,26 +254,15 @@ export default function ReportPage() {
 
   const weakCount = session?.trustReport.weakCount ?? 0;
   const unsupportedCount = session?.trustReport.unsupportedCount ?? 0;
-  const criticalWeakCount =
-    session?.claims.filter(
-      (claim) => claim.criticality === "high" && verdictByClaimId.get(claim.id)?.verdict === "weak",
-    ).length ?? 0;
-  const shouldHoldDecision = unsupportedCount > 0 || criticalWeakCount > 0;
-  const decisionReason = useMemo(() => {
-    if (unsupportedCount > 0 && criticalWeakCount > 0) {
-      return `${unsupportedCount} unsupported claim(s) and ${criticalWeakCount} high-critical weak claim(s) require analyst review.`;
-    }
-
-    if (unsupportedCount > 0) {
-      return `${unsupportedCount} unsupported claim(s) block safe sharing until reviewed.`;
-    }
-
-    if (criticalWeakCount > 0) {
-      return `${criticalWeakCount} high-critical weak claim(s) need manual validation before release.`;
-    }
-
-    return "No unsupported claims and no high-critical weak claims detected in this run.";
-  }, [criticalWeakCount, unsupportedCount]);
+  const criticalWeakCount = session ? countCriticalWeakClaims(session.claims, verdictByClaimId) : 0;
+  const reportDecision = useMemo(
+    () =>
+      buildReportDecision({
+        unsupportedCount,
+        criticalWeakCount,
+      }),
+    [criticalWeakCount, unsupportedCount],
+  );
   const riskClaim = session ? highestRiskClaim(session.claims, verdictByClaimId) : null;
   const scoreBreakdown = useMemo(() => {
     if (!session) {
@@ -453,25 +445,7 @@ export default function ReportPage() {
         </p>
       ) : null}
 
-      <div className={shouldHoldDecision ? "panel stack decision-banner decision-banner-hold" : "panel stack decision-banner decision-banner-safe"}>
-        <div className="decision-row">
-          <div className="stack decision-copy">
-            <p className="kicker">Go/No-Go Decision</p>
-            <h2>{shouldHoldDecision ? "HOLD" : "SAFE TO SHARE"}</h2>
-            <p className="helper-line">{decisionReason}</p>
-          </div>
-          <div className="stack decision-actions">
-            <Link href="/claims" className={shouldHoldDecision ? "button-primary" : "button-secondary"}>
-              {shouldHoldDecision ? "Review blocking claims" : "Open claims review"}
-            </Link>
-            <p className="section-note">
-              {shouldHoldDecision
-                ? "Do not publish externally until blocking claims are resolved."
-                : "Proceed with sharing, then run a final analyst spot-check for critical actions."}
-            </p>
-          </div>
-        </div>
-      </div>
+      <DecisionBanner decision={reportDecision} />
 
       <div className="report-summary-grid">
         <ScoreCard session={session} />
@@ -524,51 +498,34 @@ export default function ReportPage() {
         </div>
       ) : null}
 
-      <div className="panel stack limitations-panel">
-        <h2>Limitations & Confidence</h2>
-        <p className="helper-line">
-          This defines where ProofStack is reliable and where human judgment remains mandatory.
-        </p>
-        <ul className="limitations-list">
-          <li>
-            <strong>Can verify:</strong> Claim-to-evidence alignment against the uploaded sources.
-          </li>
-          <li>
-            <strong>Cannot verify:</strong> Facts not present in the provided files or events outside this dataset.
-          </li>
-          <li>
-            <strong>Human review required:</strong> Any unsupported claim, high-critical weak claim, or high-impact response path.
-          </li>
-        </ul>
-        <div className="metric-row">
-          <span className="metric-pill">Trust score: {session.trustReport.trustScore}/100</span>
-          <span className="metric-pill">Sources analyzed: {session.sources.length}</span>
-          <span className="metric-pill">Evidence references: {evidenceLabels.length}</span>
-        </div>
-      </div>
+      <LimitationsConfidencePanel
+        trustScore={session.trustReport.trustScore}
+        sourceCount={session.sources.length}
+        evidenceReferenceCount={evidenceLabels.length}
+      />
 
       {scoreBreakdown ? <ScoreExplainabilityPanel breakdown={scoreBreakdown} /> : null}
 
       <div className="panel stack panel-raised">
-        <div style={{ borderLeft: '4px solid var(--accent)', paddingLeft: '16px' }}>
+        <div className="compare-section-head">
           <h2>Audit Outcome: Draft vs Verified</h2>
           <p className="helper-line">
             See how the verification engine qualified the initial AI response based on ground-truth evidence.
           </p>
         </div>
-        <div className="compare-grid" style={{ marginTop: '12px' }}>
-          <div className="compare-block" style={{ background: 'var(--surface-muted)', border: '1px solid var(--border)' }}>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+        <div className="compare-grid compare-grid-spaced">
+          <div className="compare-block compare-block-draft">
+            <h3 className="compare-title compare-title-draft">
               <span>📝</span> Draft Answer (Unverified)
             </h3>
-            <pre style={{ marginTop: '12px', fontSize: '1rem', color: 'var(--text-secondary)', opacity: 0.8 }}>{session.draftAnswer}</pre>
+            <pre className="compare-pre compare-pre-draft">{session.draftAnswer}</pre>
           </div>
-          <div className="compare-block" style={{ background: 'var(--success-soft)', border: '1px solid var(--success)', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--success)', color: 'white', fontSize: '0.7rem', fontWeight: 800, padding: '4px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>Verified</div>
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)' }}>
+          <div className="compare-block compare-block-verified">
+            <div className="compare-verified-pill">Verified</div>
+            <h3 className="compare-title compare-title-verified">
               <span>🛡️</span> Verified Answer
             </h3>
-            <pre style={{ marginTop: '12px', fontSize: '1rem', fontWeight: 500 }}>
+            <pre className="compare-pre compare-pre-verified">
               {renderVerifiedAnswerWithRefs(verifiedAnswerForDisplay)}
             </pre>
           </div>

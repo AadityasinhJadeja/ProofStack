@@ -41,7 +41,7 @@ export default function RootLayout({
 
               <AppNav />
 
-              <div className="topbar-right" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <div className="topbar-right">
                 <TopBarActions />
               </div>
             </div>
