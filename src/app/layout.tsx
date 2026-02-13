@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { AppNav } from "@/components/navigation/AppNav";
+import { PageTransition } from "@/components/navigation/PageTransition";
 import { TopBarActions } from "@/components/navigation/TopBarActions";
 
 
@@ -48,7 +49,7 @@ export default function RootLayout({
 
 
           </header>
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
       </body>
     </html>

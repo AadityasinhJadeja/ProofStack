@@ -270,6 +270,18 @@ export default function ReportPage() {
     () => (session ? stripEvidenceIndexSection(session.verifiedAnswer) : ""),
     [session],
   );
+  const createdAtLabel = useMemo(() => {
+    if (!session) {
+      return "";
+    }
+
+    const createdAtDate = new Date(session.createdAt);
+    if (Number.isNaN(createdAtDate.getTime())) {
+      return session.createdAt;
+    }
+
+    return createdAtDate.toLocaleString();
+  }, [session]);
 
   async function handleExport() {
     if (!session) {
@@ -367,40 +379,46 @@ export default function ReportPage() {
 
   return (
     <section className="stack">
-      <div className="report-topbar">
-        {/* Left Spacer for centering */}
-        <div className="report-topbar-spacer" />
-
-        <div className="section-header">
+      <div className="panel panel-raised report-hero-shell">
+        <div className="report-hero-copy stack">
           <p className="kicker">Report Artifact</p>
           <h1 className="page-heading">Trust Report</h1>
-          <p className="page-subtitle">
+          <p className="page-subtitle report-hero-subtitle">
             Review score, claim-level verdicts, and source evidence before sharing conclusions.
           </p>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={handleExport}
-              disabled={isExporting || isClearing}
-            >
-              {isExporting ? "Exporting..." : "Export Report"}
-            </button>
-            <button
-              type="button"
-              className="button-secondary"
-              onClick={handleClearReport}
-              disabled={isClearing || isExporting}
-            >
-              {isClearing ? "Clearing..." : "Clear Report"}
-            </button>
+          <div className="report-meta-row">
+            <span className="report-meta-pill">Session: {session.id.slice(0, 8)}</span>
+            <span className="report-meta-pill">Created: {createdAtLabel}</span>
+            <span className="report-meta-pill">Domain: {session.domain}</span>
+            <span className="report-meta-pill">Strictness: {session.strictness}</span>
+            <span className="report-meta-pill report-meta-pill-strong">
+              Trust Score: {session.trustReport.trustScore}/100
+            </span>
+            {session.challengeMode ? (
+              <span className="report-meta-pill report-meta-pill-warn">Challenge mode</span>
+            ) : null}
           </div>
         </div>
-      </div>
 
+        <div className="report-hero-actions">
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={handleExport}
+            disabled={isExporting || isClearing}
+          >
+            {isExporting ? "Exporting..." : "Export Report"}
+          </button>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={handleClearReport}
+            disabled={isClearing || isExporting}
+          >
+            {isClearing ? "Clearing..." : "Clear Report"}
+          </button>
+        </div>
+      </div>
 
       {errorMessage ? (
         <p role="alert" className="alert">

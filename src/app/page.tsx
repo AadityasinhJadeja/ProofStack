@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 
 import { getPrefs, setLastSession, setPrefs } from "@/lib/sessionStore";
 import type { DomainPreset, StrictnessPreset, VerificationSession } from "@/lib/types/proofstack";
@@ -31,13 +32,29 @@ export default function HomePage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [lastSessionId, setLastSessionId] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [hasMounted, setHasMounted] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const runVerificationSectionRef = useRef<HTMLDivElement>(null);
+  const focusResetTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const prefs = getPrefs();
     setDomain(prefs.domain);
     setStrictness(prefs.strictness);
   }, []);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (focusResetTimerRef.current) {
+        window.clearTimeout(focusResetTimerRef.current);
+      }
+    },
+    [],
+  );
 
   // Cycle loading messages
   useEffect(() => {
@@ -66,6 +83,31 @@ export default function HomePage() {
   const triggerFileUpload = () => {
     fileInputRef.current?.click();
   };
+
+  function scrollToRunVerification(event: React.MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+
+    const section = runVerificationSectionRef.current;
+    if (!section) {
+      return;
+    }
+
+    section.classList.remove("section-focus");
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    window.requestAnimationFrame(() => {
+      section.classList.add("section-focus");
+    });
+
+    if (focusResetTimerRef.current) {
+      window.clearTimeout(focusResetTimerRef.current);
+    }
+
+    focusResetTimerRef.current = window.setTimeout(() => {
+      section.classList.remove("section-focus");
+      focusResetTimerRef.current = null;
+    }, 1400);
+  }
 
   function completeVerificationRun(data: VerificationSession) {
     setLastSession(data);
@@ -163,7 +205,7 @@ export default function HomePage() {
   }
 
   return (
-    <section className="stack" style={{ gap: '0' }}>
+    <section className="stack home-page">
       <div className="hero-shell">
         {/* Floating Background Intelligence Assets */}
         <div className="hero-visual-wrapper">
@@ -273,16 +315,16 @@ export default function HomePage() {
         </div>
 
         <div className="hero-content">
-          <div style={{ marginBottom: '12px' }}>
-            <span className="hero-kicker" style={{ borderRadius: '999px', padding: '8px 20px', fontSize: '0.85rem' }}>ProofStack AI Auditor v2.1</span>
+          <div className="hero-kicker-shell">
+            <span className="hero-kicker hero-kicker-pill">ProofStack AI Auditor v2.1</span>
           </div>
           <h1 className="hero-title">Think, verify, and trace <br /> all in one place.</h1>
-          <p className="hero-subtitle" style={{ fontSize: '1.3rem', maxWidth: '42ch' }}>
+          <p className="hero-subtitle hero-subtitle-large">
             Bridge the trust gap in security operations. ProofStack automatically
             audits AI-generated security briefs against your ground-truth data.
           </p>
           <div className="hero-actions">
-            <a href="#run-verification" className="button-primary">
+            <a href="#run-verification" className="button-primary" onClick={scrollToRunVerification}>
               Run Verification Engine
             </a>
             <Link href="/report" className="button-secondary">
@@ -316,7 +358,11 @@ export default function HomePage() {
         </article>
       </div>
 
-      <div id="run-verification" className="section-header">
+      <div
+        id="run-verification"
+        ref={runVerificationSectionRef}
+        className="section-header section-anchor-target run-verification-header"
+      >
         <p className="kicker">Evidence Launchpad</p>
         <h2 className="page-heading">Run a Verification Pass</h2>
         <p className="page-subtitle">
@@ -325,7 +371,7 @@ export default function HomePage() {
       </div>
 
 
-      <div className="engine-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '48px', padding: '0 60px 140px' }}>
+      <div className="engine-grid">
         <div className="panel stack">
           <h3>1. Source Documents</h3>
           <p className="helper-line">Upload security documents such as Incident Reports, Security Policies, System Logs, or Threat Intel feeds for evidence-backed verification.</p>
@@ -347,7 +393,7 @@ export default function HomePage() {
             />
           </div>
 
-          <div className="source-grid" style={{ marginTop: '16px' }}>
+          <div className="source-grid source-grid-home">
             {uploadedFiles.length > 0 ? (
               uploadedFiles.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="source-chip">
@@ -364,7 +410,7 @@ export default function HomePage() {
                 </div>
               ))
             ) : (
-              <p className="section-note" style={{ textAlign: 'center', opacity: 0.6 }}>
+              <p className="section-note no-upload-note">
                 No files uploaded. Will use <code>datasets/demo1</code> if empty.
               </p>
             )}
@@ -377,7 +423,7 @@ export default function HomePage() {
             Define your inquiry and set the verification rigor level.
           </p>
 
-          <div className="stack" style={{ gap: '8px' }}>
+          <div className="stack field-stack">
             <label htmlFor="question">Investigation Question</label>
             <textarea
               id="question"
@@ -389,7 +435,7 @@ export default function HomePage() {
           </div>
 
           <div className="form-grid">
-            <div className="stack" style={{ gap: '8px' }}>
+            <div className="stack field-stack">
               <label htmlFor="domain">Domain</label>
               <select
                 id="domain"
@@ -404,7 +450,7 @@ export default function HomePage() {
               </select>
             </div>
 
-            <div className="stack" style={{ gap: '8px' }}>
+            <div className="stack field-stack">
               <label htmlFor="strictness">Strictness Level</label>
               <select
                 id="strictness"
@@ -420,20 +466,19 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: "10px", marginTop: "12px" }}>
-            <button type="submit" className="button-primary" disabled={isLoading} style={{ width: '100%', minHeight: '52px', fontSize: '1.1rem' }}>
+          <div className="engine-actions">
+            <button type="submit" className="button-primary engine-submit-button" disabled={isLoading}>
               {isLoading ? "Running Verification..." : "Run Verification Engine"}
             </button>
             <button
               type="button"
-              className="button-secondary"
+              className="button-secondary engine-challenge-button"
               onClick={handleRunChallengeDemo}
               disabled={isLoading}
-              style={{ width: "100%", minHeight: "48px" }}
             >
               {isLoading ? "Preparing Demo..." : "Run Failure Challenge Demo"}
             </button>
-            <p className="helper-line" style={{ margin: 0 }}>
+            <p className="helper-line engine-helper-line">
               Challenge demo uses <code>datasets/demo1</code> and injects one false claim so you can show ProofStack catching it.
             </p>
           </div>
@@ -447,15 +492,15 @@ export default function HomePage() {
       </div>
 
       {lastSessionId ? (
-        <div className="panel cta-card panel-raised" style={{ marginTop: '24px', borderLeft: '4px solid var(--success)' }}>
-          <p className="status-banner" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.5rem' }}>✅</span>
+        <div className="panel cta-card panel-raised verification-complete-card">
+          <p className="status-banner verification-complete-banner">
+            <span className="verification-complete-icon">✅</span>
             <span>Verification complete and saved locally.</span>
           </p>
-          <p style={{ marginLeft: '40px', color: 'var(--text-secondary)' }}>
+          <p className="verification-complete-session">
             Session ID: <code>{lastSessionId}</code>
           </p>
-          <div style={{ marginLeft: '40px', marginTop: '12px' }}>
+          <div className="verification-complete-action">
             <Link href="/report" className="button-primary">
               View Trust Report & Evidence
             </Link>
@@ -464,20 +509,22 @@ export default function HomePage() {
       ) : null}
 
       {/* Loading Overlay */}
-      {isLoading && (
-        <div className="loading-overlay">
-          <div className="loading-card">
-            <div className="loading-spinner-wrapper">
-              <div className="loading-pulse" />
-              <div className="loading-spinner" />
-            </div>
-            <div className="loading-text-stack">
-              <p className="loading-subtext">Verification in progress</p>
-              <p className="loading-step-text">{LOADING_STEPS[loadingStep]}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {hasMounted && isLoading
+        ? createPortal(
+            <div className="loading-overlay">
+              <div className="loading-card">
+                <div className="loading-spinner-wrapper">
+                  <div className="loading-spinner" />
+                </div>
+                <div className="loading-text-stack">
+                  <p className="loading-subtext">Verification in progress</p>
+                  <p className="loading-step-text">{LOADING_STEPS[loadingStep]}</p>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </section>
   );
 }

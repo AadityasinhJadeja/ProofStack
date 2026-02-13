@@ -79,6 +79,26 @@ export default function ClaimsPage() {
     return session.claims.filter((claim) => verdictByClaimId.get(claim.id)?.verdict === filter);
   }, [filter, session, verdictByClaimId]);
 
+  useEffect(() => {
+    if (filteredClaims.length === 0) {
+      setSelectedClaimId(null);
+      return;
+    }
+
+    const selectedClaimStillVisible = filteredClaims.some((claim) => claim.id === selectedClaimId);
+    if (!selectedClaimStillVisible) {
+      setSelectedClaimId(filteredClaims[0].id);
+    }
+  }, [filteredClaims, selectedClaimId]);
+
+  const filterEmptyText = useMemo(() => {
+    if (filter === "all") {
+      return "No claims were extracted in this analysis.";
+    }
+
+    return `No ${filter} claims found.`;
+  }, [filter]);
+
   const selectedClaim = session?.claims.find((claim) => claim.id === selectedClaimId) ?? null;
   const selectedVerdict = selectedClaim ? verdictByClaimId.get(selectedClaim.id) : undefined;
   const selectedEvidence = selectedClaim ? evidenceByClaimId.get(selectedClaim.id) ?? [] : [];
@@ -138,13 +158,17 @@ export default function ClaimsPage() {
       <div className="results-layout">
         <div className="panel stack">
           <h2>Claims Table</h2>
-          <p className="helper-line">Showing {filteredClaims.length} claim(s) for the selected filter.</p>
+          <p className="helper-line">
+            {filteredClaims.length > 0
+              ? `Showing ${filteredClaims.length} claim(s) for the selected filter.`
+              : filterEmptyText}
+          </p>
           <ClaimTable
             claims={filteredClaims}
             verdictByClaimId={verdictByClaimId}
             onViewEvidence={(claimId) => setSelectedClaimId(claimId)}
             selectedClaimId={selectedClaimId}
-            emptyText="No claims match this filter."
+            emptyText={filterEmptyText}
           />
         </div>
 
