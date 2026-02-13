@@ -1178,6 +1178,50 @@ tbody tr:hover {
   min-width: 176px;
 }
 
+.decision-banner {
+  margin-top: 2px;
+}
+
+.decision-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: start;
+}
+
+.decision-copy h2 {
+  letter-spacing: 0.01em;
+}
+
+.decision-actions {
+  justify-items: end;
+  text-align: right;
+  max-width: 280px;
+}
+
+.decision-banner-safe {
+  border-color: rgba(5, 150, 105, 0.25);
+  background: linear-gradient(180deg, rgba(236, 253, 245, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.decision-banner-hold {
+  border-color: rgba(220, 38, 38, 0.24);
+  background: linear-gradient(180deg, rgba(254, 242, 242, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+.limitations-panel {
+  border-color: rgba(148, 163, 184, 0.48);
+}
+
+.limitations-list {
+  display: grid;
+  gap: 10px;
+}
+
+.limitations-list li {
+  margin-bottom: 0;
+}
+
 
 .compare-grid {
   display: grid;
@@ -1425,6 +1469,16 @@ code {
 
   .report-hero-actions {
     justify-items: start;
+  }
+
+  .decision-row {
+    grid-template-columns: 1fr;
+  }
+
+  .decision-actions {
+    justify-items: start;
+    text-align: left;
+    max-width: none;
   }
 
   .engine-grid {
