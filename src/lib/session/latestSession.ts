@@ -1,9 +1,14 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 import type { VerificationSession } from "@/lib/types/proofstack";
 
-const SESSION_DIR = path.join(process.cwd(), ".proofstack");
+const SESSION_DIR =
+  process.env.NODE_ENV === "production"
+    ? path.join(os.tmpdir(), "proofstack-sessions")
+    : path.join(process.cwd(), ".proofstack");
+
 const SESSION_FILE = path.join(SESSION_DIR, "latest-session.json");
 
 /**

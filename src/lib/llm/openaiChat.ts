@@ -51,7 +51,7 @@ export async function callOpenAIChat(
     throw new Error("OPENAI_API_KEY is not configured");
   }
 
-  const model = options.model ?? process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
+  const model = options.model ?? process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
   const body: Record<string, unknown> = {
     model,

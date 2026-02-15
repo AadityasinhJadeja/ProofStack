@@ -227,7 +227,16 @@ export async function POST(request: Request) {
     trustReport,
   };
 
-  await setLatestSession(session);
+  try {
+    await setLatestSession(session);
+  } catch (error) {
+    // On serverless hosts (for example Vercel), local filesystem writes can fail.
+    // The client still stores the latest session in localStorage, so verification
+    // should remain successful even when server-side persistence is unavailable.
+    debugLog("verifyRoute", "latest_session_persist_failed", {
+      error: error instanceof Error ? error.message : "unknown",
+    });
+  }
 
   return NextResponse.json(session);
 }
